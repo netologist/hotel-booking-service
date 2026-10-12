@@ -107,7 +107,7 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, defaultMaxConnIdleTime, cfg.DBMaxConnIdleTime)
 	assert.Equal(t, defaultHealthCheckPeriod, cfg.DBHealthCheckPeriod)
 	assert.Equal(t, defaultPingTimeout, cfg.DBPingTimeout)
-	assert.True(t, cfg.RunMigrations)
+	assert.False(t, cfg.RunMigrations)
 }
 
 func TestLoad_CustomEnv(t *testing.T) {
