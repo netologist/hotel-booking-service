@@ -10,10 +10,11 @@ import (
 const environmentProduction = "production"
 
 type Config struct {
-	Environment string `env:"APP_ENV" envDefault:"development" validate:"required,oneof=development staging production test"` //nolint:lll // struct tags cannot be split across lines
-	HTTPPort    int    `env:"HTTP_PORT" envDefault:"8080" validate:"required,min=1,max=65535"`
-	DatabaseURL string `env:"DATABASE_URL" validate:"required"`
-	LogLevel    string `env:"LOG_LEVEL" envDefault:"info" validate:"required,oneof=debug info warn error"`
+	Environment   string `env:"APP_ENV" envDefault:"development" validate:"required,oneof=development staging production test"` //nolint:lll // struct tags cannot be split across lines
+	HTTPPort      int    `env:"HTTP_PORT" envDefault:"8080" validate:"required,min=1,max=65535"`
+	DatabaseURL   string `env:"DATABASE_URL" validate:"required"`
+	LogLevel      string `env:"LOG_LEVEL" envDefault:"info" validate:"required,oneof=debug info warn error"`
+	RunMigrations bool   `env:"RUN_MIGRATIONS" envDefault:"true"`
 
 	// CORSAllowedOrigins lists the exact origins (scheme://host[:port]) allowed to call the API from a browser.
 	// Empty disables CORS entirely. Wildcards are rejected.

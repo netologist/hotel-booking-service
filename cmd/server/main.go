@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/netologist/hotel-booking/database"
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi"
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi/handler"
 	"github.com/netologist/hotel-booking/internal/adapter/postgres"
@@ -39,6 +40,13 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if cfg.RunMigrations {
+		slog.Info("executing pending database migrations")
+		if err := postgres.RunMigrations(cfg.DatabaseURL, database.MigrationsFS, "migrations"); err != nil {
+			return fmt.Errorf("run migrations: %w", err)
+		}
+	}
 
 	pool, err := setupPostgresPool(ctx, cfg)
 	if err != nil {

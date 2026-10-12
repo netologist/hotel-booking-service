@@ -80,6 +80,7 @@ func resetEnv(t *testing.T) {
 	unsetEnv(t, "DB_MAX_CONN_IDLE_TIME")
 	unsetEnv(t, "DB_HEALTH_CHECK_PERIOD")
 	unsetEnv(t, "DB_PING_TIMEOUT")
+	unsetEnv(t, "RUN_MIGRATIONS")
 }
 
 func TestLoad_Defaults(t *testing.T) {
@@ -106,6 +107,7 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, defaultMaxConnIdleTime, cfg.DBMaxConnIdleTime)
 	assert.Equal(t, defaultHealthCheckPeriod, cfg.DBHealthCheckPeriod)
 	assert.Equal(t, defaultPingTimeout, cfg.DBPingTimeout)
+	assert.True(t, cfg.RunMigrations)
 }
 
 func TestLoad_CustomEnv(t *testing.T) {
