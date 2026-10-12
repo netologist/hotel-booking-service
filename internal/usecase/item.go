@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/netologist/go-service-template/internal/domain"
+	"github.com/netologist/hotel-booking/internal/domain"
 )
 
 // ItemService is the inbound port for item business operations.

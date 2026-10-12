@@ -11,7 +11,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const modulePrefix = "github.com/netologist/go-service-template"
+const modulePrefix = "github.com/netologist/hotel-booking"
 
 func getProjectRoot(t *testing.T) string {
 	t.Helper()

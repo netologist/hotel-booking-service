@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/netologist/go-service-template/internal/adapter/httpapi/problem"
-	"github.com/netologist/go-service-template/internal/domain"
-	"github.com/netologist/go-service-template/internal/gen/openapi"
-	"github.com/netologist/go-service-template/internal/usecase"
+	"github.com/netologist/hotel-booking/internal/adapter/httpapi/problem"
+	"github.com/netologist/hotel-booking/internal/domain"
+	"github.com/netologist/hotel-booking/internal/gen/openapi"
+	"github.com/netologist/hotel-booking/internal/usecase"
 )
 
 func NewItemHandler(itemService usecase.ItemService) *ItemHandler {

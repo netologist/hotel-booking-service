@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/netologist/go-service-template/pkg/client"
+	"github.com/netologist/hotel-booking/pkg/client"
 )
 
 func TestClient_FindItems(t *testing.T) {

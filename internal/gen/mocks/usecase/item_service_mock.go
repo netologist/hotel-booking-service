@@ -7,7 +7,7 @@ package usecasemocks
 import (
 	"context"
 
-	"github.com/netologist/go-service-template/internal/domain"
+	"github.com/netologist/hotel-booking/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 )
 
