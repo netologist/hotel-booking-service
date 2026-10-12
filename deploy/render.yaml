@@ -62,3 +62,5 @@ services:
         value: 1m
       - key: DB_PING_TIMEOUT
         value: 5s
+      - key: RUN_MIGRATIONS
+        value: "true"

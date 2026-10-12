@@ -4,14 +4,11 @@
     "$shared": {
       "contentType": "application/json"
     },
-    "development": {
+    "local": {
       "baseUrl": "http://localhost:8080"
     },
-    "staging": {
-      "baseUrl": "https://api-staging.example.com"
-    },
-    "production": {
-      "baseUrl": "https://api.example.com"
+    "test": {
+      "baseUrl": "https://hotels-api-hdoc.onrender.com"
     }
   },
 

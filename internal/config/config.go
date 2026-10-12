@@ -14,7 +14,7 @@ type Config struct {
 	HTTPPort      int    `env:"HTTP_PORT" envDefault:"8080" validate:"required,min=1,max=65535"`
 	DatabaseURL   string `env:"DATABASE_URL" validate:"required"`
 	LogLevel      string `env:"LOG_LEVEL" envDefault:"info" validate:"required,oneof=debug info warn error"`
-	RunMigrations bool   `env:"RUN_MIGRATIONS" envDefault:"true"`
+	RunMigrations bool   `env:"RUN_MIGRATIONS" envDefault:"false"`
 
 	// CORSAllowedOrigins lists the exact origins (scheme://host[:port]) allowed to call the API from a browser.
 	// Empty disables CORS entirely. Wildcards are rejected.
