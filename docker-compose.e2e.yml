@@ -1,0 +1,58 @@
+services:
+  # Built locally from migration stage; decoupled from production API image.
+  migration:
+    image: service-migration:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migration
+    entrypoint: ["sh", "-c", "/bin/goose up && tail -f /dev/null"]
+    restart: "no"
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-service_db}?sslmode=disable
+      GOOSE_MIGRATION_DIR: /database/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-netologist/go-service-template}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-service_db}?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_started
+
+  api-healthcheck:
+    image: alpine/curl:3.14
+    command: tail -f /dev/null
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://api:8080/healthz || exit 1"]
+      interval: 2s
+      retries: 15
+      start_period: 2s
+      timeout: 3s
+    depends_on:
+      api:
+        condition: service_started
+
+  # Test runner is built locally only; never pulled from or pushed to a registry.
+  e2e:
+    image: service-e2e:local
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    environment:
+      BASE_URL: http://api:8080
+    depends_on:
+      api-healthcheck:
+        condition: service_healthy

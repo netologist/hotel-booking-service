@@ -1,0 +1,15 @@
+.git
+.github
+.env*
+*.out
+*.log
+bin/
+tmp/
+dist/
+.idea/
+.vscode/
+Dockerfile*
+docker-compose*.yml
+mise.toml
+Makefile
+README.md

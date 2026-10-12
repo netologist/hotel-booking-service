@@ -1,0 +1,22 @@
+# Step 1: Modules caching
+FROM golang:1.27-alpine AS modules
+WORKDIR /modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Step 2: Builder
+FROM golang:1.27-alpine AS builder
+COPY --from=modules /go/pkg /go/pkg
+WORKDIR /app
+COPY . .
+RUN go install github.com/onsi/ginkgo/v2/ginkgo && \
+    CGO_ENABLED=0 ginkgo build ./tests/e2e && \
+    mv ./tests/e2e/e2e.test /bin/e2e.test
+
+# Step 3: Final Runner
+FROM alpine:3.20
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /bin/e2e.test /e2e.test
+
+ENTRYPOINT ["/e2e.test"]
+CMD ["-ginkgo.v"]
