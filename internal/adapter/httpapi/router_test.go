@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,16 +14,17 @@ import (
 
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi"
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi/handler"
+	"github.com/netologist/hotel-booking/internal/domain"
 	usecasemocks "github.com/netologist/hotel-booking/internal/gen/mocks/usecase"
 	"github.com/netologist/hotel-booking/internal/gen/openapi"
 )
 
-func newTestRouter(t *testing.T, opts httpapi.RouterOptions) (http.Handler, *usecasemocks.MockItemService) {
+func newTestRouter(t *testing.T, opts httpapi.RouterOptions) (http.Handler, *usecasemocks.MockHotelService) {
 	t.Helper()
-	mockService := usecasemocks.NewMockItemService(t)
+	mockService := usecasemocks.NewMockHotelService(t)
 	server := httpapi.NewServer(
 		handler.NewHealthCheck(),
-		handler.NewItemHandler(mockService),
+		handler.NewHotelHandler(mockService),
 	)
 	return httpapi.NewRouterWithOptions(server, opts), mockService
 }
@@ -51,7 +53,7 @@ func TestRouter_CORS_ConfiguredAndNarrow(t *testing.T) {
 
 	t.Run("allowed origin preflight succeeds", func(t *testing.T) {
 		t.Parallel()
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodOptions, "/api/v1/items", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodOptions, "/api/v1/hotels", nil)
 		req.Header.Set("Origin", allowedOrigin)
 		req.Header.Set("Access-Control-Request-Method", http.MethodPost)
 		rec := httptest.NewRecorder()
@@ -62,7 +64,7 @@ func TestRouter_CORS_ConfiguredAndNarrow(t *testing.T) {
 
 	t.Run("disallowed origin is rejected", func(t *testing.T) {
 		t.Parallel()
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodOptions, "/api/v1/items", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodOptions, "/api/v1/hotels", nil)
 		req.Header.Set("Origin", "https://attacker.com")
 		req.Header.Set("Access-Control-Request-Method", http.MethodPost)
 		rec := httptest.NewRecorder()
@@ -119,11 +121,17 @@ func TestRouter_InternalServerError_GenericMessageAndRequestID(t *testing.T) {
 
 	rawDBError := errors.New("pq: password authentication failed for user \"postgres\"")
 	mockService.EXPECT().
-		FindItems(mock.Anything).
-		Return(nil, rawDBError).
+		CreateHotel(mock.Anything, "Grand Budapest Hotel", "100 Alpine Way", "Lutz").
+		Return(domain.Hotel{}, rawDBError).
 		Once()
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/items", nil)
+	req := httptest.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		"/api/v1/hotels",
+		strings.NewReader(`{"name":"Grand Budapest Hotel","address":"100 Alpine Way","city":"Lutz"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-Id", "client-trace-12345")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

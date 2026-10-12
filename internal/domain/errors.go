@@ -2,11 +2,8 @@ package domain
 
 import "errors"
 
-// ErrInvalidItem indicates a domain invariant violation on an item entity.
-var ErrInvalidItem = errors.New("invalid item")
+// ErrInvalidHotel indicates a domain invariant violation on a hotel entity.
+var ErrInvalidHotel = errors.New("invalid hotel")
 
-// ErrItemAlreadyExists indicates an item with the same unique attribute already exists.
-var ErrItemAlreadyExists = errors.New("item already exists")
-
-// ErrItemNotFound indicates the requested item does not exist.
-var ErrItemNotFound = errors.New("item not found")
+// ErrHotelAlreadyExists indicates a hotel with the same unique attribute already exists.
+var ErrHotelAlreadyExists = errors.New("hotel already exists")

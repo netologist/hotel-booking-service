@@ -14,37 +14,33 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// CreateItemRequest defines model for CreateItemRequest.
-type CreateItemRequest struct {
-	// Description Example: Ergonomic hot-swappable mechanical keyboard
-	Description *string `json:"description,omitempty"`
+// CreateHotelRequest defines model for CreateHotelRequest.
+type CreateHotelRequest struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
 
-	// Name Example: Mechanical Keyboard
+	// City Example: Lutz
+	City string `json:"city"`
+
+	// Name Example: Grand Budapest Hotel
 	Name string `json:"name"`
-
-	// Price Example: 9900
-	Price int64 `json:"price"`
 }
 
-// Item defines model for Item.
-type Item struct {
-	CreatedAt time.Time `json:"created_at"`
+// Hotel defines model for Hotel.
+type Hotel struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
 
-	// Description Example: Ergonomic hot-swappable mechanical keyboard
-	Description string             `json:"description"`
-	Id          openapi_types.UUID `json:"id"`
+	// City Example: Lutz
+	City      string             `json:"city"`
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
 
-	// Name Example: Mechanical Keyboard
-	Name string `json:"name"`
-
-	// Price Price in cents (e.g. 9900 = $99.00)
-	//
-	// Example: 9900
-	Price     int64     `json:"price"`
+	// Name Example: Grand Budapest Hotel
+	Name      string    `json:"name"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -52,7 +48,7 @@ type Item struct {
 type Problem struct {
 	// Code Application-specific error code
 	//
-	// Example: INVALID_ITEM
+	// Example: INVALID_HOTEL
 	Code *string `json:"code,omitempty"`
 
 	// Detail Human-readable explanation specific to this occurrence of the problem
@@ -65,7 +61,7 @@ type Problem struct {
 
 	// Instance A URI reference that identifies the specific occurrence of the problem
 	//
-	// Example: /api/v1/items
+	// Example: /api/v1/hotels
 	Instance *string `json:"instance,omitempty"`
 
 	// RequestId Identifier of the request; quote it when reporting a server error so it can be found in the server logs
@@ -111,14 +107,8 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
-// FindItemsParams defines parameters for FindItems.
-type FindItemsParams struct {
-	// Name Item name query string
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
-}
-
-// CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
-type CreateItemJSONRequestBody = CreateItemRequest
+// CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
+type CreateHotelJSONRequestBody = CreateHotelRequest
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -194,24 +184,19 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
-	// FindItems Find an item based on its name or list all items
-	//
-	// Corresponds with GET /api/v1/items (the `FindItems` operationId).
-	FindItems(ctx context.Context, params *FindItemsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateItemWithBody Register a new item
+	// CreateHotelWithBody Register a new hotel
 	//
 	// Takes any type of body and a specified content type.
 	//
-	// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-	CreateItemWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+	CreateHotelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateItem Register a new item
+	// CreateHotel Register a new hotel
 	//
 	// Takes a body of the `application/json` content type.
 	//
-	// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-	CreateItem(ctx context.Context, body CreateItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+	CreateHotel(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetHealth Health check probe
 	//
@@ -219,28 +204,13 @@ type ClientInterface interface {
 	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-// FindItems Find an item based on its name or list all items
-//
-// Corresponds with GET /api/v1/items (the `FindItems` operationId).
-func (c *Client) FindItems(ctx context.Context, params *FindItemsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewFindItemsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// CreateItemWithBody Register a new item
+// CreateHotelWithBody Register a new hotel
 //
 // Takes any type of body and a specified content type.
 //
-// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-func (c *Client) CreateItemWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateItemRequestWithBody(c.Server, contentType, body)
+// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+func (c *Client) CreateHotelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateHotelRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -251,13 +221,13 @@ func (c *Client) CreateItemWithBody(ctx context.Context, contentType string, bod
 	return c.Client.Do(req)
 }
 
-// CreateItem Register a new item
+// CreateHotel Register a new hotel
 //
 // Takes a body of the `application/json` content type.
 //
-// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-func (c *Client) CreateItem(ctx context.Context, body CreateItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateItemRequest(c.Server, body)
+// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+func (c *Client) CreateHotel(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateHotelRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -283,73 +253,19 @@ func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (
 	return c.Client.Do(req)
 }
 
-// NewFindItemsRequest constructs an http.Request for the FindItems method
-func NewFindItemsRequest(server string, params *FindItemsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/items")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.Name != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "name", *params.Name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateItemRequest calls the generic CreateItem builder with application/json body
-func NewCreateItemRequest(server string, body CreateItemJSONRequestBody) (*http.Request, error) {
+// NewCreateHotelRequest calls the generic CreateHotel builder with application/json body
+func NewCreateHotelRequest(server string, body CreateHotelJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateItemRequestWithBody(server, "application/json", bodyReader)
+	return NewCreateHotelRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewCreateItemRequestWithBody constructs an http.Request for the CreateItem method, with any body, and a specified content type
-func NewCreateItemRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateHotelRequestWithBody constructs an http.Request for the CreateHotel method, with any body, and a specified content type
+func NewCreateHotelRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -357,7 +273,7 @@ func NewCreateItemRequestWithBody(server string, contentType string, body io.Rea
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/items")
+	operationPath := fmt.Sprintf("/api/v1/hotels")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -448,26 +364,19 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
-	// FindItemsWithResponse Find an item based on its name or list all items
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /api/v1/items (the `FindItems` operationId).
-	FindItemsWithResponse(ctx context.Context, params *FindItemsParams, reqEditors ...RequestEditorFn) (*FindItemsResponse, error)
-
-	// CreateItemWithBodyWithResponse Register a new item
+	// CreateHotelWithBodyWithResponse Register a new hotel
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
-	// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-	CreateItemWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateItemResponse, error)
+	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+	CreateHotelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateHotelResponse, error)
 
-	// CreateItemWithResponse Register a new item
+	// CreateHotelWithResponse Register a new hotel
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-	CreateItemWithResponse(ctx context.Context, body CreateItemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateItemResponse, error)
+	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+	CreateHotelWithResponse(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateHotelResponse, error)
 
 	// GetHealthWithResponse Health check probe
 	//
@@ -477,66 +386,11 @@ type ClientWithResponsesInterface interface {
 	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 }
 
-type FindItemsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]Item
-	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
-	ApplicationproblemJSON400 *BadRequest
-	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
-	ApplicationproblemJSON500 *InternalServerError
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r FindItemsResponse) GetJSON200() *[]Item {
-	return r.JSON200
-}
-
-// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
-func (r FindItemsResponse) GetApplicationproblemJSON400() *BadRequest {
-	return r.ApplicationproblemJSON400
-}
-
-// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
-func (r FindItemsResponse) GetApplicationproblemJSON500() *InternalServerError {
-	return r.ApplicationproblemJSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r FindItemsResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r FindItemsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r FindItemsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r FindItemsResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type CreateItemResponse struct {
+type CreateHotelResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *Item
+	JSON201 *Hotel
 	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
 	ApplicationproblemJSON400 *BadRequest
 	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
@@ -546,32 +400,32 @@ type CreateItemResponse struct {
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r CreateItemResponse) GetJSON201() *Item {
+func (r CreateHotelResponse) GetJSON201() *Hotel {
 	return r.JSON201
 }
 
 // GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
-func (r CreateItemResponse) GetApplicationproblemJSON400() *BadRequest {
+func (r CreateHotelResponse) GetApplicationproblemJSON400() *BadRequest {
 	return r.ApplicationproblemJSON400
 }
 
 // GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
-func (r CreateItemResponse) GetApplicationproblemJSON409() *Conflict {
+func (r CreateHotelResponse) GetApplicationproblemJSON409() *Conflict {
 	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
-func (r CreateItemResponse) GetApplicationproblemJSON500() *InternalServerError {
+func (r CreateHotelResponse) GetApplicationproblemJSON500() *InternalServerError {
 	return r.ApplicationproblemJSON500
 }
 
 // GetBody returns the raw response body bytes
-func (r CreateItemResponse) GetBody() []byte {
+func (r CreateHotelResponse) GetBody() []byte {
 	return r.Body
 }
 
 // Status returns HTTPResponse.Status
-func (r CreateItemResponse) Status() string {
+func (r CreateHotelResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -579,7 +433,7 @@ func (r CreateItemResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r CreateItemResponse) StatusCode() int {
+func (r CreateHotelResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -587,7 +441,7 @@ func (r CreateItemResponse) StatusCode() int {
 }
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r CreateItemResponse) ContentType() string {
+func (r CreateHotelResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -650,43 +504,30 @@ func (r GetHealthResponse) ContentType() string {
 	return ""
 }
 
-// FindItemsWithResponse Find an item based on its name or list all items
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /api/v1/items (the `FindItems` operationId).
-func (c *ClientWithResponses) FindItemsWithResponse(ctx context.Context, params *FindItemsParams, reqEditors ...RequestEditorFn) (*FindItemsResponse, error) {
-	rsp, err := c.FindItems(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseFindItemsResponse(rsp)
-}
-
-// CreateItemWithBodyWithResponse Register a new item
+// CreateHotelWithBodyWithResponse Register a new hotel
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
-// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-func (c *ClientWithResponses) CreateItemWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateItemResponse, error) {
-	rsp, err := c.CreateItemWithBody(ctx, contentType, body, reqEditors...)
+// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+func (c *ClientWithResponses) CreateHotelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateHotelResponse, error) {
+	rsp, err := c.CreateHotelWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateItemResponse(rsp)
+	return ParseCreateHotelResponse(rsp)
 }
 
-// CreateItemWithResponse Register a new item
+// CreateHotelWithResponse Register a new hotel
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// Corresponds with POST /api/v1/items (the `CreateItem` operationId).
-func (c *ClientWithResponses) CreateItemWithResponse(ctx context.Context, body CreateItemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateItemResponse, error) {
-	rsp, err := c.CreateItem(ctx, body, reqEditors...)
+// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
+func (c *ClientWithResponses) CreateHotelWithResponse(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateHotelResponse, error) {
+	rsp, err := c.CreateHotel(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateItemResponse(rsp)
+	return ParseCreateHotelResponse(rsp)
 }
 
 // GetHealthWithResponse Health check probe
@@ -702,62 +543,22 @@ func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEdit
 	return ParseGetHealthResponse(rsp)
 }
 
-// ParseFindItemsResponse parses an HTTP response from a FindItemsWithResponse call
-func ParseFindItemsResponse(rsp *http.Response) (*FindItemsResponse, error) {
+// ParseCreateHotelResponse parses an HTTP response from a CreateHotelWithResponse call
+func ParseCreateHotelResponse(rsp *http.Response) (*CreateHotelResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &FindItemsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Item
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateItemResponse parses an HTTP response from a CreateItemWithResponse call
-func ParseCreateItemResponse(rsp *http.Response) (*CreateItemResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateItemResponse{
+	response := &CreateHotelResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Item
+		var dest Hotel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

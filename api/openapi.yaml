@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Go Service Template API
-  description: Clean Architecture REST API template demonstrating ports & adapters, OpenAPI code generation, and PostgreSQL persistence.
+  title: Hotel Booking Platform API
+  description: Clean Architecture REST API for hotel management.
   version: 1.0.0
 paths:
   /healthz:
@@ -24,47 +24,23 @@ paths:
                     format: date-time
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /api/v1/items:
-    get:
-      summary: Find an item based on its name or list all items
-      operationId: findItems
-      parameters:
-        - name: name
-          in: query
-          required: false
-          description: Item name query string
-          schema:
-            type: string
-            example: "Widget"
-      responses:
-        '200':
-          description: Matching items list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Item'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+  /api/v1/hotels:
     post:
-      summary: Register a new item
-      operationId: createItem
+      summary: Register a new hotel
+      operationId: createHotel
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateItemRequest'
+              $ref: '#/components/schemas/CreateHotelRequest'
       responses:
         '201':
-          description: Item registered successfully
+          description: Hotel registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Item'
+                $ref: '#/components/schemas/Hotel'
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
@@ -138,11 +114,11 @@ components:
           type: string
           format: uri-reference
           description: A URI reference that identifies the specific occurrence of the problem
-          example: "/api/v1/items"
+          example: "/api/v1/hotels"
         code:
           type: string
           description: Application-specific error code
-          example: "INVALID_ITEM"
+          example: "INVALID_HOTEL"
         request_id:
           type: string
           description: Identifier of the request; quote it when reporting a server error so it can be found in the server logs
@@ -153,13 +129,13 @@ components:
           items:
             $ref: '#/components/schemas/ValidationError'
 
-    Item:
+    Hotel:
       type: object
       required:
         - id
         - name
-        - description
-        - price
+        - address
+        - city
         - created_at
         - updated_at
       properties:
@@ -168,15 +144,13 @@ components:
           format: uuid
         name:
           type: string
-          example: "Mechanical Keyboard"
-        description:
+          example: "Grand Budapest Hotel"
+        address:
           type: string
-          example: "Ergonomic hot-swappable mechanical keyboard"
-        price:
-          type: integer
-          format: int64
-          description: Price in cents (e.g. 9900 = $99.00)
-          example: 9900
+          example: "100 Alpine Way"
+        city:
+          type: string
+          example: "Lutz"
         created_at:
           type: string
           format: date-time
@@ -184,23 +158,25 @@ components:
           type: string
           format: date-time
 
-    CreateItemRequest:
+    CreateHotelRequest:
       type: object
       required:
         - name
-        - price
+        - address
+        - city
       properties:
         name:
           type: string
           minLength: 2
           maxLength: 255
-          example: "Mechanical Keyboard"
-        description:
+          example: "Grand Budapest Hotel"
+        address:
           type: string
-          maxLength: 1000
-          example: "Ergonomic hot-swappable mechanical keyboard"
-        price:
-          type: integer
-          format: int64
-          minimum: 0
-          example: 9900
+          minLength: 2
+          maxLength: 255
+          example: "100 Alpine Way"
+        city:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Lutz"

@@ -15,38 +15,25 @@ Accept: application/json
 # response.body.status == "ok"
 
 ### ==============================================================================
-### List Items (Read before Create)
+### Create Hotel
 ### ==============================================================================
 
-# @name ListItems
-GET {{baseUrl}}/api/v1/items
-Accept: application/json
-
-###
-# Expected:
-# HTTP 200
-# response.body is an array of Item objects
-
-### ==============================================================================
-### Create Item
-### ==============================================================================
-
-# @name CreateItem
-POST {{baseUrl}}/api/v1/items
+# @name CreateHotel
+POST {{baseUrl}}/api/v1/hotels
 Content-Type: {{contentType}}
 Accept: application/json
 
 {
-  "name": "Mechanical Keyboard",
-  "description": "Ergonomic hot-swappable mechanical keyboard",
-  "price": 9900
+  "name": "Grand Budapest Hotel",
+  "address": "100 Alpine Way",
+  "city": "Lutz"
 }
 
 ###
 # Expected:
 # HTTP 201 Created
-# response.body.name == "Mechanical Keyboard"
+# response.body.name == "Grand Budapest Hotel"
 # response.body.id is a generated UUIDv7
 
-### Capture created item ID
-@createdItemId = {{CreateItem.response.body.id}}
+### Capture created hotel ID
+@createdHotelId = {{CreateHotel.response.body.id}}

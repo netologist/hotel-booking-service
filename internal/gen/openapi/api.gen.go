@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,37 +18,33 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// CreateItemRequest defines model for CreateItemRequest.
-type CreateItemRequest struct {
-	// Description Example: Ergonomic hot-swappable mechanical keyboard
-	Description *string `json:"description,omitempty"`
+// CreateHotelRequest defines model for CreateHotelRequest.
+type CreateHotelRequest struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
 
-	// Name Example: Mechanical Keyboard
+	// City Example: Lutz
+	City string `json:"city"`
+
+	// Name Example: Grand Budapest Hotel
 	Name string `json:"name"`
-
-	// Price Example: 9900
-	Price int64 `json:"price"`
 }
 
-// Item defines model for Item.
-type Item struct {
-	CreatedAt time.Time `json:"created_at"`
+// Hotel defines model for Hotel.
+type Hotel struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
 
-	// Description Example: Ergonomic hot-swappable mechanical keyboard
-	Description string             `json:"description"`
-	Id          openapi_types.UUID `json:"id"`
+	// City Example: Lutz
+	City      string             `json:"city"`
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
 
-	// Name Example: Mechanical Keyboard
-	Name string `json:"name"`
-
-	// Price Price in cents (e.g. 9900 = $99.00)
-	//
-	// Example: 9900
-	Price     int64     `json:"price"`
+	// Name Example: Grand Budapest Hotel
+	Name      string    `json:"name"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -57,7 +52,7 @@ type Item struct {
 type Problem struct {
 	// Code Application-specific error code
 	//
-	// Example: INVALID_ITEM
+	// Example: INVALID_HOTEL
 	Code *string `json:"code,omitempty"`
 
 	// Detail Human-readable explanation specific to this occurrence of the problem
@@ -70,7 +65,7 @@ type Problem struct {
 
 	// Instance A URI reference that identifies the specific occurrence of the problem
 	//
-	// Example: /api/v1/items
+	// Example: /api/v1/hotels
 	Instance *string `json:"instance,omitempty"`
 
 	// RequestId Identifier of the request; quote it when reporting a server error so it can be found in the server logs
@@ -116,23 +111,14 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
-// FindItemsParams defines parameters for FindItems.
-type FindItemsParams struct {
-	// Name Item name query string
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
-}
-
-// CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
-type CreateItemJSONRequestBody = CreateItemRequest
+// CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
+type CreateHotelJSONRequestBody = CreateHotelRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// FindItems Find an item based on its name or list all items
-	// (GET /api/v1/items)
-	FindItems(w http.ResponseWriter, r *http.Request, params FindItemsParams)
-	// CreateItem Register a new item
-	// (POST /api/v1/items)
-	CreateItem(w http.ResponseWriter, r *http.Request)
+	// CreateHotel Register a new hotel
+	// (POST /api/v1/hotels)
+	CreateHotel(w http.ResponseWriter, r *http.Request)
 	// GetHealth Health check probe
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -142,15 +128,9 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// FindItems Find an item based on its name or list all items
-// (GET /api/v1/items)
-func (_ Unimplemented) FindItems(w http.ResponseWriter, r *http.Request, params FindItemsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// CreateItem Register a new item
-// (POST /api/v1/items)
-func (_ Unimplemented) CreateItem(w http.ResponseWriter, r *http.Request) {
+// CreateHotel Register a new hotel
+// (POST /api/v1/hotels)
+func (_ Unimplemented) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -169,44 +149,11 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// FindItems operation middleware
-func (siw *ServerInterfaceWrapper) FindItems(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params FindItemsParams
-
-	// ------------- Optional query parameter "name" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
-		}
-		return
-	}
+// CreateHotel operation middleware
+func (siw *ServerInterfaceWrapper) CreateHotel(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.FindItems(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// CreateItem operation middleware
-func (siw *ServerInterfaceWrapper) CreateItem(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateItem(w, r)
+		siw.Handler.CreateHotel(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -347,10 +294,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1/items", wrapper.FindItems)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1/items", wrapper.CreateItem)
+		r.Post(options.BaseURL+"/api/v1/hotels", wrapper.CreateHotel)
 	})
 
 	return r
@@ -362,71 +306,17 @@ type ConflictApplicationProblemPlusJSONResponse Problem
 
 type InternalServerErrorApplicationProblemPlusJSONResponse Problem
 
-type FindItemsRequestObject struct {
-	Params FindItemsParams
+type CreateHotelRequestObject struct {
+	Body *CreateHotelJSONRequestBody
 }
 
-type FindItemsResponseObject interface {
-	VisitFindItemsResponse(w http.ResponseWriter) error
+type CreateHotelResponseObject interface {
+	VisitCreateHotelResponse(w http.ResponseWriter) error
 }
 
-type FindItems200JSONResponse []Item
+type CreateHotel201JSONResponse Hotel
 
-func (response FindItems200JSONResponse) VisitFindItemsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type FindItems400ApplicationProblemPlusJSONResponse struct {
-	BadRequestApplicationProblemPlusJSONResponse
-}
-
-func (response FindItems400ApplicationProblemPlusJSONResponse) VisitFindItemsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type FindItems500ApplicationProblemPlusJSONResponse struct {
-	InternalServerErrorApplicationProblemPlusJSONResponse
-}
-
-func (response FindItems500ApplicationProblemPlusJSONResponse) VisitFindItemsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateItemRequestObject struct {
-	Body *CreateItemJSONRequestBody
-}
-
-type CreateItemResponseObject interface {
-	VisitCreateItemResponse(w http.ResponseWriter) error
-}
-
-type CreateItem201JSONResponse Item
-
-func (response CreateItem201JSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+func (response CreateHotel201JSONResponse) VisitCreateHotelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -438,11 +328,11 @@ func (response CreateItem201JSONResponse) VisitCreateItemResponse(w http.Respons
 	return err
 }
 
-type CreateItem400ApplicationProblemPlusJSONResponse struct {
+type CreateHotel400ApplicationProblemPlusJSONResponse struct {
 	BadRequestApplicationProblemPlusJSONResponse
 }
 
-func (response CreateItem400ApplicationProblemPlusJSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+func (response CreateHotel400ApplicationProblemPlusJSONResponse) VisitCreateHotelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -454,11 +344,11 @@ func (response CreateItem400ApplicationProblemPlusJSONResponse) VisitCreateItemR
 	return err
 }
 
-type CreateItem409ApplicationProblemPlusJSONResponse struct {
+type CreateHotel409ApplicationProblemPlusJSONResponse struct {
 	ConflictApplicationProblemPlusJSONResponse
 }
 
-func (response CreateItem409ApplicationProblemPlusJSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+func (response CreateHotel409ApplicationProblemPlusJSONResponse) VisitCreateHotelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -470,11 +360,11 @@ func (response CreateItem409ApplicationProblemPlusJSONResponse) VisitCreateItemR
 	return err
 }
 
-type CreateItem500ApplicationProblemPlusJSONResponse struct {
+type CreateHotel500ApplicationProblemPlusJSONResponse struct {
 	InternalServerErrorApplicationProblemPlusJSONResponse
 }
 
-func (response CreateItem500ApplicationProblemPlusJSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+func (response CreateHotel500ApplicationProblemPlusJSONResponse) VisitCreateHotelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -529,12 +419,9 @@ func (response GetHealth500ApplicationProblemPlusJSONResponse) VisitGetHealthRes
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// FindItems Find an item based on its name or list all items
-	// (GET /api/v1/items)
-	FindItems(ctx context.Context, request FindItemsRequestObject) (FindItemsResponseObject, error)
-	// CreateItem Register a new item
-	// (POST /api/v1/items)
-	CreateItem(ctx context.Context, request CreateItemRequestObject) (CreateItemResponseObject, error)
+	// CreateHotel Register a new hotel
+	// (POST /api/v1/hotels)
+	CreateHotel(ctx context.Context, request CreateHotelRequestObject) (CreateHotelResponseObject, error)
 	// GetHealth Health check probe
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -579,37 +466,11 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// FindItems operation middleware
-func (sh *strictHandler) FindItems(w http.ResponseWriter, r *http.Request, params FindItemsParams) {
-	var request FindItemsRequestObject
+// CreateHotel operation middleware
+func (sh *strictHandler) CreateHotel(w http.ResponseWriter, r *http.Request) {
+	var request CreateHotelRequestObject
 
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.FindItems(ctx, request.(FindItemsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "FindItems")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(FindItemsResponseObject); ok {
-		if err := validResponse.VisitFindItemsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// CreateItem operation middleware
-func (sh *strictHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
-	var request CreateItemRequestObject
-
-	var body CreateItemJSONRequestBody
+	var body CreateHotelJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -617,18 +478,18 @@ func (sh *strictHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateItem(ctx, request.(CreateItemRequestObject))
+		return sh.ssi.CreateHotel(ctx, request.(CreateHotelRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateItem")
+		handler = middleware(handler, "CreateHotel")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateItemResponseObject); ok {
-		if err := validResponse.VisitCreateItemResponse(w); err != nil {
+	} else if validResponse, ok := response.(CreateHotelResponseObject); ok {
+		if err := validResponse.VisitCreateHotelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -665,30 +526,26 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"vFddc9u2Ev0rO7h5uHcuJdGy5NTq9MFxnERTJ3VtN31IM5kVuBQRkwACgLZVj/57ByD1QZGOndSTJ1sS",
-	"sHtwzu5Z4I5xVWglSTrLJnfMkNVKWgofXmByTl9Kss5/4ko6kuFf1DoXHJ1QcqCNmuVU/P+zVdL/ZnlG",
-	"Bfr/nhlK2YT9Z7BJMah+tYOzahdbLpcRS8hyI7QPxyY+K9RpoQfvMRdJyARkjDKgDBSYp8oUlICp181U",
-	"smDLiB0rmeaC/1C8q5zQg3OyqjScAHNDmCyAboV11mMW8hqNQOmArzAuIzaVjozE/ILMNZkTf8AfCX2V",
-	"Hqr8UAHw6+rNPvaxIXQ0dVRsFYM2SpNxoiqURtQ7RrdY6JzYhJ2YuZKqEBwy5Xr2BrXGWU5QEM9QCo45",
-	"XNFiptAkLGIF3p6SnLuMTfbiOI6YW2gfxToj5NzzJbGgZoa3m0i/dkYajscRK4Rcf+4Iq43gzbiHhz6/",
-	"rzJ0bMKEdAcjFuKIoizYZANOSEdzqljz5SgMJWzyoYK6Cv1xvVzNPlOtvaOiTSUPbCefMNC8BpCgo54T",
-	"IWQL/hPR34orkgaGshSdyx4ryv20N6vyzH8NQgL3dQz/pf68D14Q+AWeHR724/h/LHpQql15Ilbq5Bup",
-	"3ZE0HL/WdRvy6iTRtnqNfF36r/qydf7zV8dwOBo/h3oFvCSHIrdQ7412S0YlHSwebYyjZzVxkQpeW2jY",
-	"sMUgm757f3Q6fflpennytrvAPIB2jjdlgbLnrS6UFd3qHGVl1uuUToHLhAXFeWkMSU6gUnAZQW1nDSSe",
-	"XchDq0JRemcnmJG7IZIwBJQJDMdj4Bka5I6M7UIbDtn2JXYqrPO5vRXnIoFUUJ5YSJWB682UqVH5yML5",
-	"vw/Y62ZA1e65RoTGYJhKQlqHsqvUj+CP8ykYSqlixmXoQCQknUgF2UDTmsnHMThALQbXe4MK/FZjlEb0",
-	"1pm6eKuH6SeRtIFOV5jMKne9+mf4UipHIBzcZCTBkFbGCTkHBFtNlarorPJrOEovaapKmfgWDwesluVq",
-	"bhsneZ7u8z0aYm80Gye9ET+g3k/pYdzDvdmQ7ycjGqcHXeewDl3Zof9lRvDm8vIMqgWhDWBOkoxvU5gt",
-	"AhplxFzIGtQ2nlEcd7mKEy7vUPYiU8ZFkDU7xJZFgWaxox+EqNtH37oDdZ2w+uJ7iunejDhTpZvMcpRX",
-	"O0XzoC3WsSoi1vR3Wd5ur7Sm32qUNA/2zptCTVmjef3FSqPBglxTq5VLd9Q41penHc8N38NNVhVBFV3Y",
-	"VbpG7JUvoYOc0DoYbhkS5ErOH6SshlejaVO1DK6RqjbQ45xQwpHhmXDEXWkIzk8uLuHobAqOCp2jI0io",
-	"UNI6g6ERfUNa+KuM4+EBYILa44zgN03S79puA6FkFFz2TFk3N3Tx+yloMlZYR5JTfy3zhL1W4dboR/Xl",
-	"Ku/R2ZRF7NpvCGD3+nE/9rQrTRK1YBO234/7+yxiGl0WJG/61eSOzSnMZ6VrQNOETdgrIZNp7WhrxS2b",
-	"fGgZlaMCwhT5UpJZQC2Ap5NNWPhuNcTXVbK5R29E/lMkHkhbyI9R85E0jOOvXNnbV/VHDRV/ivYkaV/g",
-	"36Ljmdc4RIVc2NBnozi+L8Ma+2DrdbeM2PgxW7qeK+G1UNlarROgDHhghpYSUP6TrTRRJmAEzPMKsk+t",
-	"le1QfPPsYOvR9MI/876F7K9x3H7XLJtt6kxJy5bae08GoBK541XmuTM0901nKAFbck7WpmWeL75T3VF8",
-	"+PCW462H6ROVw3l9CkCQdBMkDysGGWHusr/v7ffX5N6EJexftltzvmyuBptOV1edI1YUZB0W+hveCh0m",
-	"vnMpqA1TWKgIWDwh1xVfwDPiV2HOk4ew/GcA",
+	"vFfdbts4E32VAb/vbuVYduJ2671K0m5jIOgGabZ7sVgUY3JksaFIlaSSuIXffUFS/pGtIkm36FWkmDNz",
+	"5szM4egr46aqjSbtHZt+ZZZcbbSj+HKG4po+N+R8eONGe9LxEetaSY5eGj2srZkrqn755IwOvzleUoXh",
+	"6f+WCjZl/xtuQwzTr254lazYarXKmCDHrayDOzYNUaENCwP4gEqKGAnIWmPBWKhQFcZWJMC25+ZGLNkq",
+	"Y+dGF0ryn4p3HRMGcE3ONJYToLKEYgn0IJ13AbPUd2glag98jXGVsZn2ZDWq92TvyL4JCf5M6OvwkOJD",
+	"AhDOtcbB97kl9HRhPKmdbqitqcl6mToFhbDk4iM9YFUrYlM2ynM4VbXUBH/hkmWswodL0gtfsul4MslY",
+	"JfXmPWN+WQcr563Ui0AOl37Z9XjZ+C9dP6M8f9SPxoq6ft5a1ALOGoF16J6Y23PxrTIWuk9aEmz6dwqS",
+	"bYho0f+zMTPzT5RqnqJ9J4VPJ+nwZKyj+IixfmGAwhMT6GngZUV9NlJ0zjaNFOy/MHxg2dTimaD2eI+A",
+	"+snvpNwJ1VeW9ZhMv+4NyfXv5/DqZPIS2hPwmjxK5aC1zfYKyY2gQy+n2zkeuJq4LCRvFS0aZDvkzd59",
+	"OL2cvf548cfNm8s+1kREcBjkoqlQD4L04FwR0EOtUCfx3MT0BnwpHRjOG2tJcwJTgC8JWnnpQAnMgopD",
+	"AFUTlJZgTv6eSMMYQo3HkwnwEi1yT9b1oY1ZukO0l9L5EDtIo5ICCklKOCiMhbut6reogmfpw99H5G57",
+	"YbRqtkGE1mK8JaR2HjXvqxL8eT0DSwUlZnyJHqQg7WUhyUWaNkw+jcEh1nJ4NxqWYQRCFttpsnKwCdVH",
+	"XHu7fZTiEOlsDcqug7enf4PPjfEE0sN9SRos1cZ6qReA4JLMp7ZzJpzhqENNC9NoAVKnDNMxZRauk8rL",
+	"4piPaIyDk/lEDE74Cxr8WrzKBziaj/mxOKFJ8aIvD+fRNz0NcFMSXNzcXEE6EAcBFqTJhkGF+TKiMVYu",
+	"pG5B7eI5yfNNMKk9LShVW3rVU9r3pbE+g7I7Iq6pKrTLvQJC9Lqb+s5S0pdh+sf3dNM3I+LcNH46V6hv",
+	"95rmUU1sfSUiNvT3id7+sBzcSmtl7yb2LqhCS1lnesOmU6PFiny3VmuJ7ulxbLeZPdWN/4f7MjVB8i7d",
+	"OlzH91qY0IMidB7GO4oEyugFe+L13aI5pGoVZaMwh0DPFaGGU8tL6Yn7xhJcv3l/A6dXsyhlce6hQo0L",
+	"qkj7o01lpmkVgDNjbsN8Xin0oc7BlGXsjqxLIUZH+VEeyDI1aawlm7Ljo/zomGWsRl/GQu3JTCikSZta",
+	"KGcs8UwEuNttjm0U5iysz9/eO5+3b/bsi6su3d42tMq63xrjfPTDEKTsevbdxLelhXSeLAlwDefkXNEo",
+	"FW+Gkzz/lvMN2uHOZ1E0efW4yfnOzj95Soy+D4O4lye9igOSsgAETfepzeKRYUmofPklBFlQTwu8JX8R",
+	"j7CDGuTPqkFXKrYqv51Mc9urlrIi57Gqn7Hz9czjnr6TvZOcgkYkApY/kOzEF/CS+G2UbAoQVv8OAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
