@@ -30,8 +30,6 @@ jobs:
   migrate:
     name: Run Database Migrations
     runs-on: ubuntu-latest
-    # Run migrations if DATABASE_URL secret is provided, or if explicitly requested via inputs
-    if: ${{ secrets.DATABASE_URL != '' || inputs.run_migrations == true }}
     permissions:
       contents: read
     steps:
@@ -45,17 +43,21 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-
       - name: Apply database migrations with Goose
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RUN_MIGRATIONS_INPUT: ${{ inputs.run_migrations }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::DATABASE_URL secret is required when run_migrations is true."
-            exit 1
+            if [ "$RUN_MIGRATIONS_INPUT" = "true" ]; then
+              echo "::error::DATABASE_URL secret is required when run_migrations is requested."
+              exit 1
+            fi
+            echo "DATABASE_URL secret is not configured; skipping database migrations."
+            exit 0
           fi
+          echo "Applying database migrations..."
           go tool goose -dir database/migrations postgres "$DATABASE_URL" up
-
   deploy-render:
     name: Deploy Render Blueprint & Services
     runs-on: ubuntu-latest
@@ -89,7 +91,7 @@ jobs:
         run: |
           if [ -n "$RENDER_API_KEY" ]; then
             echo "RENDER_API_KEY detected. Interacting with Render API..."
-            
+
             # If explicit service ID provided, trigger service deploy directly
             if [ -n "$RENDER_SERVICE_ID" ]; then
               echo "Triggering deploy for service $RENDER_SERVICE_ID..."
@@ -99,7 +101,7 @@ jobs:
                 -H "Accept: application/json" \
                 -H "Content-Type: application/json" \
                 -d '{"clearCache": "do_not_clear"}')
-              
+
               if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
                 echo "Successfully triggered service deployment (HTTP $HTTP_STATUS)."
                 cat response.txt
@@ -140,17 +142,17 @@ jobs:
               fi
             fi
 
-            # Fallback: find web service with matching name 'items-api'
-            echo "Querying services to find items-api..."
+            # Fallback: find web service with matching name 'hotels-api' or 'items-api'
+            echo "Querying services to find hotels-api / items-api..."
             SERVICES_STATUS=$(curl -s -o services.txt -w "%{http_code}" \
               -X GET "https://api.render.com/v1/services?limit=50" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
               -H "Accept: application/json")
 
             if [ "$SERVICES_STATUS" -ge 200 ] && [ "$SERVICES_STATUS" -lt 300 ]; then
-              SVC_ID=$(jq -r '.[] | select(.service.name == "items-api") | .service.id' services.txt 2>/dev/null || true)
+              SVC_ID=$(jq -r '.[] | select(.service.name == "hotels-api" or .service.name == "items-api") | .service.id' services.txt 2>/dev/null | head -n 1 || true)
               if [ -n "$SVC_ID" ] && [ "$SVC_ID" != "null" ]; then
-                echo "Found items-api service ID: $SVC_ID. Triggering deploy..."
+                echo "Found service ID: $SVC_ID. Triggering deploy..."
                 HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" \
                   -X POST "https://api.render.com/v1/services/${SVC_ID}/deploys" \
                   -H "Authorization: Bearer ${RENDER_API_KEY}" \
@@ -158,7 +160,7 @@ jobs:
                   -H "Content-Type: application/json" \
                   -d '{"clearCache": "do_not_clear"}')
                 if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-                  echo "Successfully triggered deployment for items-api (HTTP $HTTP_STATUS)."
+                  echo "Successfully triggered deployment for service (HTTP $HTTP_STATUS)."
                   cat response.txt
                   exit 0
                 else
