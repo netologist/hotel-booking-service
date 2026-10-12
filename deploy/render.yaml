@@ -7,26 +7,25 @@
 version: "1"
 
 databases:
-  # Managed PostgreSQL instance for catalog & items persistence
-  - name: items-db
-    databaseName: items_db
-    user: postgres
+  # Managed PostgreSQL instance for catalog & hotels persistence
+  - name: hotels-db
+    databaseName: hotels_db
+    user: hotels_user
     plan: free # or starter for production SLA and persistent disks
     ipAllowList: [] # Allows connections from Render internal network and public IP by default
 
 services:
   # Web Service running the HTTP API server
   - type: web
-    name: items-api
+    name: hotels-api
     runtime: docker
     plan: free # or starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /healthz
-    # Executes database migrations prior to routing live traffic to the new container version.
-    # Note: Requires /bin/goose in the container image and paid instance type (starter+) on Render.
-    # For free tier or scratch runtime, migrations are triggered via GitHub Actions CD (.github/workflows/cd.yml).
-    preDeployCommand: /bin/goose -dir /database/migrations postgres "$DATABASE_URL" up
+    # Database migrations are executed via GitHub Actions CD (.github/workflows/cd.yml)
+    # using the database external connection string (secrets.DATABASE_URL).
+    # preDeployCommand is omitted as it is not supported on Render Free plan.
     autoDeploy: false # CD pipeline triggers deployments deterministically via deploy hook or commit push
     envVars:
       - key: APP_ENV
@@ -37,7 +36,7 @@ services:
         value: info
       - key: DATABASE_URL
         fromDatabase:
-          name: items-db
+          name: hotels-db
           property: connectionString
       - key: SERVER_SHUTDOWN_TIMEOUT
         value: 10s

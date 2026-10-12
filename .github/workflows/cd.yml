@@ -30,7 +30,8 @@ jobs:
   migrate:
     name: Run Database Migrations
     runs-on: ubuntu-latest
-    if: inputs.run_migrations == true
+    # Run migrations if DATABASE_URL secret is provided, or if explicitly requested via inputs
+    if: ${{ secrets.DATABASE_URL != '' || inputs.run_migrations == true }}
     permissions:
       contents: read
     steps:
