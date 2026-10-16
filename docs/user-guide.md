@@ -180,10 +180,12 @@ graph LR
 
 | Command | Description |
 | :--- | :--- |
-| `mise run generate` | Executes all generators in dependency order (OpenAPI Server, Client SDK, SQLC, Mockery). |
+| `mise run generate` | Executes all generators in dependency order (OpenAPI Server, Client SDK, SQLC, Goverter, Mockery). |
 | `mise run generate:oapi` | Compiles `api/openapi.yaml` into strict Chi server interfaces and request/response models. |
 | `mise run generate:client` | Compiles `api/openapi.yaml` into a production-ready Go HTTP Client SDK under `pkg/client`. |
 | `mise run generate:sqlc` | Compiles SQL queries in `database/queries/*.sql` into type-safe Go persistence methods. |
+| `mise run generate:goverter` | Compiles type-safe struct converters under `internal/gen/goverter` via Goverter. |
+| `mise run goverter:check` | Verifies in CI that generated Goverter converters are up to date without unstaged drift. |
 | `mise run generate:mocks` | Generates interface test mocks into `internal/gen/mocks/` via Mockery. |
 | `mise run mocks:check` | Verifies in CI that generated mocks are up to date without unstaged drift. |
 

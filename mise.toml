@@ -123,9 +123,25 @@ run = "docker compose down -v"
 run = "docker compose exec postgres psql -U postgres -d hotel_booking"
 
 [tasks."generate"]
-description = "Run all code generators (OpenAPI Server, Client, SQL queries, Mocks)"
-depends = ["generate:oapi", "generate:client", "generate:sqlc", "generate:mocks"]
+description = "Run all code generators (OpenAPI Server, Client, SQL queries, Goverter, Mocks)"
+depends = ["generate:oapi", "generate:client", "generate:sqlc", "generate:goverter", "generate:mocks"]
 
+[tasks."generate:goverter"]
+description = "Generate Go converters with Goverter"
+alias = "goverter:generate"
+depends = ["generate:oapi", "generate:sqlc"]
+run = "go tool goverter gen ./internal/adapter/.../converter"
+sources = ["internal/adapter/**/converter/*.go", "internal/domain/**/*.go", "internal/gen/openapi/**/*.go", "internal/gen/sqlc/**/*.go"]
+outputs = ["internal/gen/goverter/**/*.gen.go"]
+
+[tasks."goverter:clean"]
+description = "Remove generated Goverter files"
+run = "rm -rf internal/gen/goverter"
+
+[tasks."goverter:check"]
+description = "Fail if generated Goverter converters are out of date (for CI)"
+depends = ["generate:goverter"]
+run = "git diff --exit-code -- internal/gen/goverter"
 [tasks."generate:mocks"]
 description = "Generate mocks with mockery"
 alias = "mocks:generate"

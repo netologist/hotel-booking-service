@@ -7,6 +7,7 @@ import (
 
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi/problem"
 	"github.com/netologist/hotel-booking/internal/domain"
+	goverter_httpapi "github.com/netologist/hotel-booking/internal/gen/goverter/httpapi"
 	"github.com/netologist/hotel-booking/internal/gen/openapi"
 	"github.com/netologist/hotel-booking/internal/usecase"
 )
@@ -62,10 +63,7 @@ func (h *HotelHandler) FindHotels(
 		return nil, err
 	}
 
-	responseHotels := make([]openapi.Hotel, len(hotels))
-	for i, hotel := range hotels {
-		responseHotels[i] = toHotelResponse(hotel)
-	}
+	responseHotels := goverter_httpapi.ToOpenAPIHotels(hotels)
 
 	return openapi.FindHotels200JSONResponse{
 		Hotels: &responseHotels,
@@ -75,12 +73,5 @@ func (h *HotelHandler) FindHotels(
 // mapper methods
 
 func toHotelResponse(output domain.Hotel) openapi.Hotel {
-	return openapi.Hotel{
-		Id:        output.ID,
-		Name:      output.Name,
-		City:      output.City,
-		Address:   output.Address,
-		CreatedAt: output.CreatedAt,
-		UpdatedAt: output.UpdatedAt,
-	}
+	return goverter_httpapi.ToOpenAPIHotel(output)
 }

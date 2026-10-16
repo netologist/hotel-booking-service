@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/netologist/hotel-booking/internal/domain"
+	goverter_postgres "github.com/netologist/hotel-booking/internal/gen/goverter/postgres"
 	"github.com/netologist/hotel-booking/internal/gen/sqlc"
 )
 
@@ -30,12 +31,7 @@ func NewHotelRepositoryWithQuerier(queries sqlc.Querier) *hotelRepository {
 }
 
 func (h *hotelRepository) Create(ctx context.Context, hotel domain.Hotel) (domain.Hotel, error) {
-	row, err := h.queries.CreateHotel(ctx, sqlc.CreateHotelParams{
-		ID:      hotel.ID,
-		Name:    hotel.Name,
-		Address: hotel.Address,
-		City:    hotel.City,
-	})
+	row, err := h.queries.CreateHotel(ctx, goverter_postgres.ToCreateHotelParams(hotel))
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -52,21 +48,10 @@ func (h *hotelRepository) SearchByName(ctx context.Context, name string) ([]doma
 		return nil, err
 	}
 
-	hotels := make([]domain.Hotel, len(rows))
-	for i, row := range rows {
-		hotels[i] = toDomainHotel(row)
-	}
-	return hotels, nil
+	return goverter_postgres.ToDomainHotels(rows), nil
 }
 
 // Model mappers
 func toDomainHotel(row sqlc.Hotel) domain.Hotel {
-	return domain.Hotel{
-		ID:        row.ID,
-		Name:      row.Name,
-		Address:   row.Address,
-		City:      row.City,
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
-	}
+	return goverter_postgres.ToDomainHotel(row)
 }

@@ -53,10 +53,10 @@ graph TD
   - `actionlint`: Static checker for GitHub Actions workflow files (verifies expressions, runner types, and context usage).
   - `zizmor`: Security auditor for GitHub Actions, detecting overly permissive tokens, script injection vulnerabilities, and untrusted checkouts.
 
-### 3.2. Generator Drift Checks (`validate-spec`, `validate-mocks`, `validate-sqlc`)
+### 3.2. Generator Drift Checks (`validate-spec`, `validate-mocks`, `validate-sqlc`, `validate-goverter`)
 - **Goal**: Guarantee that generated Go code is never committed out-of-date.
 - **Mechanism**:
-  1. The runner executes the respective code generator (`oapi-codegen`, `mockery`, `sqlc generate`).
+  1. The runner executes the respective code generator (`oapi-codegen`, `mockery`, `sqlc generate`, `goverter gen`).
   2. Runs `git diff --exit-code <path>`.
   3. If changes are detected, the pipeline fails with an actionable error instructing the developer to run `mise run generate` locally and commit the result.
 

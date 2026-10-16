@@ -11,6 +11,7 @@ import (
 
 	"github.com/netologist/hotel-booking/pkg/client"
 )
+
 var _ = Describe("Hotels API (/api/v1/hotels)", func() {
 	Describe("POST /api/v1/hotels (Register Hotel)", func() {
 		It("creates a new hotel and returns HTTP 201 with generated fields", func(ctx context.Context) {
