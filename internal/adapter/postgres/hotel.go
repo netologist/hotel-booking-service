@@ -46,6 +46,19 @@ func (h *hotelRepository) Create(ctx context.Context, hotel domain.Hotel) (domai
 	return toDomainHotel(row), nil
 }
 
+func (h *hotelRepository) SearchByName(ctx context.Context, name string) ([]domain.Hotel, error) {
+	rows, err := h.queries.SearchHotelsByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	hotels := make([]domain.Hotel, len(rows))
+	for i, row := range rows {
+		hotels[i] = toDomainHotel(row)
+	}
+	return hotels, nil
+}
+
 // Model mappers
 func toDomainHotel(row sqlc.Hotel) domain.Hotel {
 	return domain.Hotel{

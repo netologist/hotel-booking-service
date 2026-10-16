@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -107,6 +108,11 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
+// FindHotelsParams defines parameters for FindHotels.
+type FindHotelsParams struct {
+	Name string `form:"name" json:"name"`
+}
+
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
 
@@ -184,6 +190,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// FindHotels Find hotels by name (case-insensitive, partial match)
+	//
+	// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
+	FindHotels(ctx context.Context, params *FindHotelsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateHotelWithBody Register a new hotel
 	//
 	// Takes any type of body and a specified content type.
@@ -202,6 +213,21 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /healthz (the `GetHealth` operationId).
 	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// FindHotels Find hotels by name (case-insensitive, partial match)
+//
+// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
+func (c *Client) FindHotels(ctx context.Context, params *FindHotelsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFindHotelsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // CreateHotelWithBody Register a new hotel
@@ -251,6 +277,56 @@ func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewFindHotelsRequest constructs an http.Request for the FindHotels method
+func NewFindHotelsRequest(server string, params *FindHotelsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/hotels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "name", params.Name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewCreateHotelRequest calls the generic CreateHotel builder with application/json body
@@ -364,6 +440,13 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
+	FindHotelsWithResponse(ctx context.Context, params *FindHotelsParams, reqEditors ...RequestEditorFn) (*FindHotelsResponse, error)
+
 	// CreateHotelWithBodyWithResponse Register a new hotel
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -384,6 +467,58 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /healthz (the `GetHealth` operationId).
 	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
+}
+
+type FindHotelsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		Hotels *[]Hotel `json:"hotels,omitempty"`
+	}
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *BadRequest
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r FindHotelsResponse) GetJSON200() *struct {
+	Hotels *[]Hotel `json:"hotels,omitempty"`
+} {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r FindHotelsResponse) GetApplicationproblemJSON400() *BadRequest {
+	return r.ApplicationproblemJSON400
+}
+
+// GetBody returns the raw response body bytes
+func (r FindHotelsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r FindHotelsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FindHotelsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FindHotelsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type CreateHotelResponse struct {
@@ -504,6 +639,19 @@ func (r GetHealthResponse) ContentType() string {
 	return ""
 }
 
+// FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
+func (c *ClientWithResponses) FindHotelsWithResponse(ctx context.Context, params *FindHotelsParams, reqEditors ...RequestEditorFn) (*FindHotelsResponse, error) {
+	rsp, err := c.FindHotels(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFindHotelsResponse(rsp)
+}
+
 // CreateHotelWithBodyWithResponse Register a new hotel
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -541,6 +689,41 @@ func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEdit
 		return nil, err
 	}
 	return ParseGetHealthResponse(rsp)
+}
+
+// ParseFindHotelsResponse parses an HTTP response from a FindHotelsWithResponse call
+func ParseFindHotelsResponse(rsp *http.Response) (*FindHotelsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FindHotelsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Hotels *[]Hotel `json:"hotels,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseCreateHotelResponse parses an HTTP response from a CreateHotelWithResponse call

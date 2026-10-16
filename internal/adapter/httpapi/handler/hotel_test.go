@@ -344,3 +344,104 @@ func TestHotelRouter_Integration_CreateHotel(t *testing.T) {
 	assert.Equal(t, hotelID, got.Id)
 	assert.Equal(t, testHotelName, got.Name)
 }
+func TestHotelHandler_FindHotels_Success(t *testing.T) {
+	hotelID := uuid.New()
+	fixedTime := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	mockService := usecasemocks.NewMockHotelService(t)
+	h := handler.NewHotelHandler(mockService)
+
+	hotels := []domain.Hotel{
+		{
+			ID:        hotelID,
+			Name:      testHotelName,
+			Address:   testHotelAddress,
+			City:      testHotelCity,
+			CreatedAt: fixedTime,
+			UpdatedAt: fixedTime,
+		},
+	}
+
+	mockService.EXPECT().FindHotels(mock.Anything, "Budapest").Return(hotels, nil).Once()
+
+	resp, err := h.FindHotels(t.Context(), openapi.FindHotelsRequestObject{
+		Params: openapi.FindHotelsParams{Name: "Budapest"},
+	})
+	require.NoError(t, err)
+
+	jsonResp, ok := resp.(openapi.FindHotels200JSONResponse)
+	require.True(t, ok)
+	require.NotNil(t, jsonResp.Hotels)
+	require.Len(t, *jsonResp.Hotels, 1)
+	assert.Equal(t, hotelID, (*jsonResp.Hotels)[0].Id)
+	assert.Equal(t, testHotelName, (*jsonResp.Hotels)[0].Name)
+}
+
+func TestHotelHandler_FindHotels_EmptyQuery(t *testing.T) {
+	mockService := usecasemocks.NewMockHotelService(t)
+	h := handler.NewHotelHandler(mockService)
+
+	resp, err := h.FindHotels(t.Context(), openapi.FindHotelsRequestObject{
+		Params: openapi.FindHotelsParams{Name: "   "},
+	})
+	require.NoError(t, err)
+
+	badReq, ok := resp.(openapi.FindHotels400ApplicationProblemPlusJSONResponse)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, badReq.Status)
+	assert.Equal(t, "Bad Request", badReq.Title)
+	require.NotNil(t, badReq.Detail)
+	assert.Equal(t, "name query parameter is required", *badReq.Detail)
+}
+
+func TestHotelHandler_FindHotels_ServiceError(t *testing.T) {
+	mockService := usecasemocks.NewMockHotelService(t)
+	h := handler.NewHotelHandler(mockService)
+
+	serviceErr := errors.New("database failure")
+	mockService.EXPECT().FindHotels(mock.Anything, "Budapest").Return(nil, serviceErr).Once()
+
+	resp, err := h.FindHotels(t.Context(), openapi.FindHotelsRequestObject{
+		Params: openapi.FindHotelsParams{Name: "Budapest"},
+	})
+	require.ErrorIs(t, err, serviceErr)
+	assert.Nil(t, resp)
+}
+
+func TestHotelRouter_Integration_FindHotels(t *testing.T) {
+	hotelID := uuid.New()
+	fixedTime := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	router, mockService := SetupTestRouterWithMock(t)
+
+	hotels := []domain.Hotel{
+		{
+			ID:        hotelID,
+			Name:      testHotelName,
+			Address:   testHotelAddress,
+			City:      testHotelCity,
+			CreatedAt: fixedTime,
+			UpdatedAt: fixedTime,
+		},
+	}
+
+	mockService.EXPECT().FindHotels(mock.Anything, "Budapest").Return(hotels, nil).Once()
+
+	req := httptest.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		"/api/v1/hotels?name=Budapest",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	var got struct {
+		Hotels []openapi.Hotel `json:"hotels"`
+	}
+	err := json.NewDecoder(rec.Body).Decode(&got)
+	require.NoError(t, err)
+	require.Len(t, got.Hotels, 1)
+	assert.Equal(t, hotelID, got.Hotels[0].Id)
+	assert.Equal(t, testHotelName, got.Hotels[0].Name)
+}

@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -111,11 +113,19 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
+// FindHotelsParams defines parameters for FindHotels.
+type FindHotelsParams struct {
+	Name string `form:"name" json:"name"`
+}
+
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// FindHotels Find hotels by name (case-insensitive, partial match)
+	// (GET /api/v1/hotels)
+	FindHotels(w http.ResponseWriter, r *http.Request, params FindHotelsParams)
 	// CreateHotel Register a new hotel
 	// (POST /api/v1/hotels)
 	CreateHotel(w http.ResponseWriter, r *http.Request)
@@ -127,6 +137,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// FindHotels Find hotels by name (case-insensitive, partial match)
+// (GET /api/v1/hotels)
+func (_ Unimplemented) FindHotels(w http.ResponseWriter, r *http.Request, params FindHotelsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // CreateHotel Register a new hotel
 // (POST /api/v1/hotels)
@@ -148,6 +164,39 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// FindHotels operation middleware
+func (siw *ServerInterfaceWrapper) FindHotels(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params FindHotelsParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FindHotels(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // CreateHotel operation middleware
 func (siw *ServerInterfaceWrapper) CreateHotel(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +343,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/hotels", wrapper.FindHotels)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/hotels", wrapper.CreateHotel)
 	})
 
@@ -305,6 +357,46 @@ type BadRequestApplicationProblemPlusJSONResponse Problem
 type ConflictApplicationProblemPlusJSONResponse Problem
 
 type InternalServerErrorApplicationProblemPlusJSONResponse Problem
+
+type FindHotelsRequestObject struct {
+	Params FindHotelsParams
+}
+
+type FindHotelsResponseObject interface {
+	VisitFindHotelsResponse(w http.ResponseWriter) error
+}
+
+type FindHotels200JSONResponse struct {
+	Hotels *[]Hotel `json:"hotels,omitempty"`
+}
+
+func (response FindHotels200JSONResponse) VisitFindHotelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FindHotels400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response FindHotels400ApplicationProblemPlusJSONResponse) VisitFindHotelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type CreateHotelRequestObject struct {
 	Body *CreateHotelJSONRequestBody
@@ -419,6 +511,9 @@ func (response GetHealth500ApplicationProblemPlusJSONResponse) VisitGetHealthRes
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// FindHotels Find hotels by name (case-insensitive, partial match)
+	// (GET /api/v1/hotels)
+	FindHotels(ctx context.Context, request FindHotelsRequestObject) (FindHotelsResponseObject, error)
 	// CreateHotel Register a new hotel
 	// (POST /api/v1/hotels)
 	CreateHotel(ctx context.Context, request CreateHotelRequestObject) (CreateHotelResponseObject, error)
@@ -464,6 +559,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// FindHotels operation middleware
+func (sh *strictHandler) FindHotels(w http.ResponseWriter, r *http.Request, params FindHotelsParams) {
+	var request FindHotelsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.FindHotels(ctx, request.(FindHotelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FindHotels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(FindHotelsResponseObject); ok {
+		if err := validResponse.VisitFindHotelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // CreateHotel operation middleware
@@ -526,26 +647,28 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -10,6 +10,7 @@ import (
 // HotelService is the inbound port for hotel business operations.
 type HotelService interface {
 	CreateHotel(ctx context.Context, name, address, city string) (domain.Hotel, error)
+	FindHotels(ctx context.Context, name string) ([]domain.Hotel, error)
 }
 
 // hotelService implements HotelService.
@@ -38,4 +39,11 @@ func (u *hotelService) CreateHotel(ctx context.Context, name, address, city stri
 	}
 
 	return entity, nil
+}
+func (u *hotelService) FindHotels(ctx context.Context, name string) ([]domain.Hotel, error) {
+	hotels, err := u.hotelRepo.SearchByName(ctx, name)
+	if err != nil {
+		return nil, fmt.Errorf("find hotels: %w", err)
+	}
+	return hotels, nil
 }

@@ -34,3 +34,26 @@ Accept: application/json
 
 ### Capture created hotel ID
 @createdHotelId = {{CreateHotel.response.body.id}}
+
+### ==============================================================================
+### Find Hotels
+### ==============================================================================
+
+# @name FindHotels
+GET {{baseUrl}}/api/v1/hotels?name=Grand
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200
+# response.body.hotels is an array of matching hotels
+
+###
+# @name FindHotelsEmptyQuery
+GET {{baseUrl}}/api/v1/hotels?name=
+Accept: application/problem+json
+
+###
+# Expected:
+# HTTP 400 Bad Request
+# response.body.type == "https://err.hotel-booking.io/bad-request"

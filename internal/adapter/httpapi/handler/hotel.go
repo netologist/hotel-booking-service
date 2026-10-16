@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi/problem"
 	"github.com/netologist/hotel-booking/internal/domain"
@@ -42,6 +43,33 @@ func (h *HotelHandler) CreateHotel(
 	}
 
 	return openapi.CreateHotel201JSONResponse(toHotelResponse(model)), nil
+}
+
+func (h *HotelHandler) FindHotels(
+	ctx context.Context,
+	request openapi.FindHotelsRequestObject,
+) (openapi.FindHotelsResponseObject, error) {
+	name := strings.TrimSpace(request.Params.Name)
+	if name == "" {
+		prob := problem.BadRequest("name query parameter is required", "/api/v1/hotels", "INVALID_QUERY_PARAMETER", nil)
+		return openapi.FindHotels400ApplicationProblemPlusJSONResponse{
+			BadRequestApplicationProblemPlusJSONResponse: openapi.BadRequestApplicationProblemPlusJSONResponse(prob),
+		}, nil
+	}
+
+	hotels, err := h.hotelService.FindHotels(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	responseHotels := make([]openapi.Hotel, len(hotels))
+	for i, hotel := range hotels {
+		responseHotels[i] = toHotelResponse(hotel)
+	}
+
+	return openapi.FindHotels200JSONResponse{
+		Hotels: &responseHotels,
+	}, nil
 }
 
 // mapper methods

@@ -137,4 +137,85 @@ var _ = Describe("Hotels API (/api/v1/hotels)", func() {
 		})
 	})
 
+	Describe("GET /api/v1/hotels (Find Hotels)", func() {
+		It("finds hotels matching the search query case-insensitively", func() {
+			uniqueSuffix := uuid.NewString()[:8]
+			hotelName := "Tracer Hotel " + uniqueSuffix
+			payload, err := json.Marshal(map[string]string{
+				fieldHotelName:    hotelName,
+				fieldHotelAddress: "200 Search Ave",
+				fieldHotelCity:    "Query City",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			createResp, err := httpClient.Post(
+				baseURL+"/api/v1/hotels",
+				"application/json",
+				bytes.NewReader(payload),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(createResp.StatusCode).To(Equal(http.StatusCreated))
+			_ = createResp.Body.Close()
+
+			// Tracer query with partial and lower-case search
+			searchResp, err := httpClient.Get(baseURL + "/api/v1/hotels?name=" + strings.ToLower(uniqueSuffix))
+			Expect(err).NotTo(HaveOccurred())
+			defer func() { _ = searchResp.Body.Close() }()
+
+			Expect(searchResp.StatusCode).To(Equal(http.StatusOK))
+			Expect(searchResp.Header.Get("Content-Type")).To(ContainSubstring("application/json"))
+
+			var result struct {
+				Hotels []openapi.Hotel `json:"hotels"`
+			}
+			err = json.NewDecoder(searchResp.Body).Decode(&result)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Hotels).NotTo(BeEmpty())
+			var found bool
+			for _, h := range result.Hotels {
+				if h.Name == hotelName {
+					found = true
+					Expect(h.Address).To(Equal("200 Search Ave"))
+					Expect(h.City).To(Equal("Query City"))
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "expected created hotel to be found in search results")
+		})
+
+		It("returns HTTP 200 with empty list when no hotels match", func() {
+			nonExistent := "NonExistentHotel_" + uuid.NewString()
+			searchResp, err := httpClient.Get(baseURL + "/api/v1/hotels?name=" + nonExistent)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() { _ = searchResp.Body.Close() }()
+
+			Expect(searchResp.StatusCode).To(Equal(http.StatusOK))
+			Expect(searchResp.Header.Get("Content-Type")).To(ContainSubstring("application/json"))
+
+			var result struct {
+				Hotels []openapi.Hotel `json:"hotels"`
+			}
+			err = json.NewDecoder(searchResp.Body).Decode(&result)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Hotels).To(BeEmpty())
+		})
+
+		It("returns HTTP 400 when name query parameter is blank", func() {
+			searchResp, err := httpClient.Get(baseURL + "/api/v1/hotels?name=")
+			Expect(err).NotTo(HaveOccurred())
+			defer func() { _ = searchResp.Body.Close() }()
+
+			Expect(searchResp.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(searchResp.Header.Get("Content-Type")).To(ContainSubstring("application/problem+json"))
+
+			var prob openapi.Problem
+			err = json.NewDecoder(searchResp.Body).Decode(&prob)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(prob.Status).To(Equal(http.StatusBadRequest))
+			Expect(prob.Code).NotTo(BeNil())
+			Expect(*prob.Code).To(Equal("INVALID_QUERY_PARAMETER"))
+		})
+	})
+
 })

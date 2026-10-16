@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CreateHotel(ctx context.Context, arg CreateHotelParams) (Hotel, error)
+	SearchHotelsByName(ctx context.Context, name string) ([]Hotel, error)
 }
 
 var _ Querier = (*Queries)(nil)

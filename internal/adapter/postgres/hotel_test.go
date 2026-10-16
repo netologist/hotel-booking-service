@@ -36,6 +36,13 @@ func (m *mockQuerier) CreateHotel(ctx context.Context, arg sqlc.CreateHotelParam
 	return sqlc.Hotel{}, args.Error(1)
 }
 
+func (m *mockQuerier) SearchHotelsByName(ctx context.Context, name string) ([]sqlc.Hotel, error) {
+	args := m.Called(ctx, name)
+	if rows, ok := args.Get(0).([]sqlc.Hotel); ok {
+		return rows, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)
 	require.NotNil(t, repo)
@@ -149,6 +156,53 @@ func TestHotelRepository_Create_UniqueViolation(t *testing.T) {
 	res, err := repo.Create(ctx, input)
 	require.ErrorIs(t, err, domain.ErrHotelAlreadyExists)
 	assert.Zero(t, res)
+
+	q.AssertExpectations(t)
+}
+func TestHotelRepository_SearchByName_Success(t *testing.T) {
+	q := &mockQuerier{}
+	repo := NewHotelRepositoryWithQuerier(q)
+	ctx := t.Context()
+
+	hotelID := uuid.New()
+	fixedTime := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	rows := []sqlc.Hotel{
+		{
+			ID:        hotelID,
+			Name:      testHotelName,
+			Address:   testHotelAddress,
+			City:      testHotelCity,
+			CreatedAt: fixedTime,
+			UpdatedAt: fixedTime,
+		},
+	}
+
+	q.On("SearchHotelsByName", ctx, "Budapest").Return(rows, nil).Once()
+
+	res, err := repo.SearchByName(ctx, "Budapest")
+	require.NoError(t, err)
+	require.Len(t, res, 1)
+	assert.Equal(t, hotelID, res[0].ID)
+	assert.Equal(t, testHotelName, res[0].Name)
+	assert.Equal(t, testHotelAddress, res[0].Address)
+	assert.Equal(t, testHotelCity, res[0].City)
+	assert.True(t, fixedTime.Equal(res[0].CreatedAt))
+	assert.True(t, fixedTime.Equal(res[0].UpdatedAt))
+
+	q.AssertExpectations(t)
+}
+
+func TestHotelRepository_SearchByName_Error(t *testing.T) {
+	q := &mockQuerier{}
+	repo := NewHotelRepositoryWithQuerier(q)
+	ctx := t.Context()
+
+	expectedErr := errors.New("db error")
+	q.On("SearchHotelsByName", ctx, "Budapest").Return(nil, expectedErr).Once()
+
+	res, err := repo.SearchByName(ctx, "Budapest")
+	require.ErrorIs(t, err, expectedErr)
+	assert.Nil(t, res)
 
 	q.AssertExpectations(t)
 }

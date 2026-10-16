@@ -25,6 +25,23 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/hotels:
+    get:
+      summary: Find hotels by name (case-insensitive, partial match)
+      operationId: findHotels
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string }, example: grand }
+      responses:
+        "200":
+          description: Matching hotels (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hotels:
+                    type: array
+                    items: { $ref: "#/components/schemas/Hotel" }
+        "400": { $ref: "#/components/responses/BadRequest" }
     post:
       summary: Register a new hotel
       operationId: createHotel

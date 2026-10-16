@@ -42,3 +42,36 @@ func (q *Queries) CreateHotel(ctx context.Context, arg CreateHotelParams) (Hotel
 	)
 	return i, err
 }
+
+const searchHotelsByName = `-- name: SearchHotelsByName :many
+SELECT id, name, address, city, created_at, updated_at FROM hotels
+WHERE strpos(lower(name), lower($1::text)) > 0
+ORDER BY name
+`
+
+func (q *Queries) SearchHotelsByName(ctx context.Context, name string) ([]Hotel, error) {
+	rows, err := q.db.Query(ctx, searchHotelsByName, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Hotel
+	for rows.Next() {
+		var i Hotel
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Address,
+			&i.City,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

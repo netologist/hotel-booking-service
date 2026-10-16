@@ -93,3 +93,37 @@ func TestHotelService_CreateHotel_DomainInvariantFailure(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrInvalidHotel)
 	assert.Equal(t, uuid.Nil, res.ID)
 }
+func TestHotelService_FindHotels_Success(t *testing.T) {
+	mockRepo := domainmocks.NewMockHotelRepository(t)
+	service := usecase.NewHotelService(mockRepo)
+	ctx := t.Context()
+
+	expectedHotels := []domain.Hotel{
+		{
+			ID:      uuid.New(),
+			Name:    testHotelName,
+			Address: testHotelAddress,
+			City:    testHotelCity,
+		},
+	}
+
+	mockRepo.EXPECT().SearchByName(ctx, "Budapest").Return(expectedHotels, nil).Once()
+
+	res, err := service.FindHotels(ctx, "Budapest")
+	require.NoError(t, err)
+	assert.Equal(t, expectedHotels, res)
+}
+
+func TestHotelService_FindHotels_Error(t *testing.T) {
+	mockRepo := domainmocks.NewMockHotelRepository(t)
+	service := usecase.NewHotelService(mockRepo)
+	ctx := t.Context()
+
+	repoErr := errors.New("search failed")
+	mockRepo.EXPECT().SearchByName(ctx, "Budapest").Return(nil, repoErr).Once()
+
+	res, err := service.FindHotels(ctx, "Budapest")
+	require.ErrorIs(t, err, repoErr)
+	require.ErrorContains(t, err, "find hotels")
+	assert.Nil(t, res)
+}

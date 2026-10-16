@@ -74,4 +74,5 @@ func NewHotel(name, address, city string) (Hotel, error) {
 // HotelRepository interface
 type HotelRepository interface {
 	Create(ctx context.Context, hotel Hotel) (Hotel, error)
+	SearchByName(ctx context.Context, name string) ([]Hotel, error)
 }
