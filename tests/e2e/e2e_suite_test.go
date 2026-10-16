@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,11 +11,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/netologist/hotel-booking/pkg/client"
 )
 
 var (
 	baseURL    string
 	httpClient *http.Client
+	apiClient  *client.ClientWithResponses
 )
 
 const (
@@ -28,7 +32,7 @@ func TestE2E(t *testing.T) {
 	RunSpecs(t, "Service E2E Test Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(ctx context.Context) {
 	baseURL = os.Getenv("BASE_URL")
 	if baseURL == "" {
 		baseURL = defaultBaseURL
@@ -39,15 +43,18 @@ var _ = BeforeSuite(func() {
 		Timeout: 10 * time.Second,
 	}
 
-	Eventually(func() error {
-		resp, err := httpClient.Get(baseURL + "/healthz")
+	var err error
+	apiClient, err = client.NewClientWithResponses(baseURL, client.WithHTTPClient(httpClient))
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(ctx, func(ctx context.Context) error {
+		resp, err := apiClient.GetHealthWithResponse(ctx)
 		if err != nil {
 			return err
 		}
-		defer func() { _ = resp.Body.Close() }()
 
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("readiness probe returned status %d", resp.StatusCode)
+		if resp.StatusCode() != http.StatusOK {
+			return fmt.Errorf("readiness probe returned status %d", resp.StatusCode())
 		}
 		return nil
 	}).WithTimeout(startupTimeout).WithPolling(startupPollInterval).Should(
