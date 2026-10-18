@@ -6,6 +6,7 @@ package domainmocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/netologist/hotel-booking/internal/domain"
@@ -101,6 +102,92 @@ func (_c *MockRoomRepository_CreateBatch_Call) Return(err error) *MockRoomReposi
 }
 
 func (_c *MockRoomRepository_CreateBatch_Call) RunAndReturn(run func(ctx context.Context, rooms []domain.Room) error) *MockRoomRepository_CreateBatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindAvailableRooms provides a mock function for the type MockRoomRepository
+func (_mock *MockRoomRepository) FindAvailableRooms(ctx context.Context, hotelID *uuid.UUID, checkIn time.Time, checkOut time.Time, guests int) ([]domain.AvailableRoom, error) {
+	ret := _mock.Called(ctx, hotelID, checkIn, checkOut, guests)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindAvailableRooms")
+	}
+
+	var r0 []domain.AvailableRoom
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *uuid.UUID, time.Time, time.Time, int) ([]domain.AvailableRoom, error)); ok {
+		return returnFunc(ctx, hotelID, checkIn, checkOut, guests)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *uuid.UUID, time.Time, time.Time, int) []domain.AvailableRoom); ok {
+		r0 = returnFunc(ctx, hotelID, checkIn, checkOut, guests)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.AvailableRoom)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *uuid.UUID, time.Time, time.Time, int) error); ok {
+		r1 = returnFunc(ctx, hotelID, checkIn, checkOut, guests)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRoomRepository_FindAvailableRooms_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindAvailableRooms'
+type MockRoomRepository_FindAvailableRooms_Call struct {
+	*mock.Call
+}
+
+// FindAvailableRooms is a helper method to define mock.On call
+//   - ctx context.Context
+//   - hotelID *uuid.UUID
+//   - checkIn time.Time
+//   - checkOut time.Time
+//   - guests int
+func (_e *MockRoomRepository_Expecter) FindAvailableRooms(ctx any, hotelID any, checkIn any, checkOut any, guests any) *MockRoomRepository_FindAvailableRooms_Call {
+	return &MockRoomRepository_FindAvailableRooms_Call{Call: _e.mock.On("FindAvailableRooms", ctx, hotelID, checkIn, checkOut, guests)}
+}
+
+func (_c *MockRoomRepository_FindAvailableRooms_Call) Run(run func(ctx context.Context, hotelID *uuid.UUID, checkIn time.Time, checkOut time.Time, guests int)) *MockRoomRepository_FindAvailableRooms_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(*uuid.UUID)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		var arg3 time.Time
+		if args[3] != nil {
+			arg3 = args[3].(time.Time)
+		}
+		var arg4 int
+		if args[4] != nil {
+			arg4 = args[4].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRoomRepository_FindAvailableRooms_Call) Return(availableRooms []domain.AvailableRoom, err error) *MockRoomRepository_FindAvailableRooms_Call {
+	_c.Call.Return(availableRooms, err)
+	return _c
+}
+
+func (_c *MockRoomRepository_FindAvailableRooms_Call) RunAndReturn(run func(ctx context.Context, hotelID *uuid.UUID, checkIn time.Time, checkOut time.Time, guests int) ([]domain.AvailableRoom, error)) *MockRoomRepository_FindAvailableRooms_Call {
 	_c.Call.Return(run)
 	return _c
 }

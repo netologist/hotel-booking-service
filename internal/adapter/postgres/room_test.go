@@ -15,6 +15,8 @@ import (
 	"github.com/netologist/hotel-booking/internal/gen/sqlc"
 )
 
+const testRoomTypeSingle = "single"
+
 func TestNewRoomRepository(t *testing.T) {
 	repo := NewRoomRepository(nil)
 	require.NotNil(t, repo)
@@ -43,7 +45,7 @@ func TestRoomRepository_CreateBatch_Success(t *testing.T) {
 		ID:         roomID,
 		HotelID:    hotelID,
 		RoomNumber: "101",
-		RoomType:   "single",
+		RoomType:   testRoomTypeSingle,
 		Capacity:   1,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
@@ -88,7 +90,7 @@ func TestRoomRepository_GetByHotelID(t *testing.T) {
 			ID:         uuid.New(),
 			HotelID:    hotelID,
 			RoomNumber: "101",
-			RoomType:   "single",
+			RoomType:   testRoomTypeSingle,
 			Capacity:   1,
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
@@ -114,5 +116,36 @@ func TestRoomRepository_GetByID_NotFound(t *testing.T) {
 
 	_, err := repo.GetByID(ctx, roomID)
 	require.ErrorIs(t, err, domain.ErrRoomNotFound)
+	q.AssertExpectations(t)
+}
+
+func TestRoomRepository_FindAvailableRooms(t *testing.T) {
+	q := &mockQuerier{}
+	repo := NewRoomRepositoryWithQuerier(q)
+	ctx := t.Context()
+
+	hotelID := uuid.New()
+	checkIn := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	checkOut := time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC)
+
+	q.On("FindAvailableRooms", ctx, mock.Anything).Return([]sqlc.FindAvailableRoomsRow{
+		{
+			ID:         uuid.New(),
+			HotelID:    hotelID,
+			HotelName:  "Grand Budapest Hotel",
+			RoomNumber: "101",
+			RoomType:   testRoomTypeSingle,
+			Capacity:   1,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+	}, nil).Once()
+
+	rooms, err := repo.FindAvailableRooms(ctx, &hotelID, checkIn, checkOut, 1)
+	require.NoError(t, err)
+	require.Len(t, rooms, 1)
+	assert.Equal(t, "101", rooms[0].RoomNumber)
+	assert.Equal(t, "Grand Budapest Hotel", rooms[0].HotelName)
+	assert.Equal(t, domain.RoomTypeSingle, rooms[0].RoomType)
 	q.AssertExpectations(t)
 }

@@ -39,6 +39,23 @@ func (e RoomType) Valid() bool {
 	}
 }
 
+// AvailableRoom defines model for AvailableRoom.
+type AvailableRoom struct {
+	// Capacity Example: 2
+	Capacity int                `json:"capacity"`
+	HotelId  openapi_types.UUID `json:"hotel_id"`
+
+	// HotelName Example: Grand Budapest Hotel
+	HotelName string             `json:"hotel_name"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// RoomNumber Example: 101
+	RoomNumber string `json:"room_number"`
+
+	// RoomType Example: single
+	RoomType RoomType `json:"room_type"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -170,6 +187,21 @@ type FindHotelsParams struct {
 	Name string `form:"name" json:"name"`
 }
 
+// FindAvailableRoomsParams defines parameters for FindAvailableRooms.
+type FindAvailableRoomsParams struct {
+	// CheckInDate Check-in date (YYYY-MM-DD)
+	CheckInDate openapi_types.Date `form:"check_in_date" json:"check_in_date"`
+
+	// CheckOutDate Check-out date (YYYY-MM-DD)
+	CheckOutDate openapi_types.Date `form:"check_out_date" json:"check_out_date"`
+
+	// Guests Number of guests
+	Guests int `form:"guests" json:"guests"`
+
+	// HotelId Optional hotel ID filter
+	HotelId *openapi_types.UUID `form:"hotel_id,omitempty" json:"hotel_id,omitempty"`
+}
+
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
 
@@ -271,6 +303,11 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
 	ResetDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// FindAvailableRooms Find available rooms between two dates for a given number of people
+	//
+	// Corresponds with GET /api/v1/rooms/available (the `FindAvailableRooms` operationId).
+	FindAvailableRooms(ctx context.Context, params *FindAvailableRoomsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SeedDatabase Seed database with test data
 	//
 	// Corresponds with POST /api/v1/seed (the `SeedDatabase` operationId).
@@ -336,6 +373,21 @@ func (c *Client) CreateHotel(ctx context.Context, body CreateHotelJSONRequestBod
 // Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
 func (c *Client) ResetDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResetDatabaseRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// FindAvailableRooms Find available rooms between two dates for a given number of people
+//
+// Corresponds with GET /api/v1/rooms/available (the `FindAvailableRooms` operationId).
+func (c *Client) FindAvailableRooms(ctx context.Context, params *FindAvailableRoomsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFindAvailableRoomsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -493,6 +545,84 @@ func NewResetDatabaseRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewFindAvailableRoomsRequest constructs an http.Request for the FindAvailableRooms method
+func NewFindAvailableRoomsRequest(server string, params *FindAvailableRoomsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/rooms/available")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "check_in_date", params.CheckInDate, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "check_out_date", params.CheckOutDate, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "guests", params.Guests, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.HotelId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "hotel_id", *params.HotelId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSeedDatabaseRequest constructs an http.Request for the SeedDatabase method
 func NewSeedDatabaseRequest(server string) (*http.Request, error) {
 	var err error
@@ -618,6 +748,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
 	ResetDatabaseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ResetDatabaseResponse, error)
+
+	// FindAvailableRoomsWithResponse Find available rooms between two dates for a given number of people
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/rooms/available (the `FindAvailableRooms` operationId).
+	FindAvailableRoomsWithResponse(ctx context.Context, params *FindAvailableRoomsParams, reqEditors ...RequestEditorFn) (*FindAvailableRoomsResponse, error)
 
 	// SeedDatabaseWithResponse Seed database with test data
 	//
@@ -796,6 +933,65 @@ func (r ResetDatabaseResponse) ContentType() string {
 	return ""
 }
 
+type FindAvailableRoomsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		Rooms []AvailableRoom `json:"rooms"`
+	}
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *BadRequest
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *InternalServerError
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r FindAvailableRoomsResponse) GetJSON200() *struct {
+	Rooms []AvailableRoom `json:"rooms"`
+} {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r FindAvailableRoomsResponse) GetApplicationproblemJSON400() *BadRequest {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r FindAvailableRoomsResponse) GetApplicationproblemJSON500() *InternalServerError {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r FindAvailableRoomsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r FindAvailableRoomsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FindAvailableRoomsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FindAvailableRoomsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type SeedDatabaseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -952,6 +1148,19 @@ func (c *ClientWithResponses) ResetDatabaseWithResponse(ctx context.Context, req
 	return ParseResetDatabaseResponse(rsp)
 }
 
+// FindAvailableRoomsWithResponse Find available rooms between two dates for a given number of people
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/rooms/available (the `FindAvailableRooms` operationId).
+func (c *ClientWithResponses) FindAvailableRoomsWithResponse(ctx context.Context, params *FindAvailableRoomsParams, reqEditors ...RequestEditorFn) (*FindAvailableRoomsResponse, error) {
+	rsp, err := c.FindAvailableRooms(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFindAvailableRoomsResponse(rsp)
+}
+
 // SeedDatabaseWithResponse Seed database with test data
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1080,6 +1289,48 @@ func ParseResetDatabaseResponse(rsp *http.Response) (*ResetDatabaseResponse, err
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFindAvailableRoomsResponse parses an HTTP response from a FindAvailableRoomsWithResponse call
+func ParseFindAvailableRoomsResponse(rsp *http.Response) (*FindAvailableRoomsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FindAvailableRoomsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Rooms []AvailableRoom `json:"rooms"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerError

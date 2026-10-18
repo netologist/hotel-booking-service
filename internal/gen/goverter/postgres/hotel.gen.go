@@ -28,6 +28,28 @@ func ToCreateRoomParams(source domain.Room) sqlc.CreateRoomParams {
 	sqlcCreateRoomParams.Capacity = converter.IntToInt32(source.Capacity)
 	return sqlcCreateRoomParams
 }
+func ToDomainAvailableRoom(source sqlc.FindAvailableRoomsRow) domain.AvailableRoom {
+	var domainAvailableRoom domain.AvailableRoom
+	domainAvailableRoom.ID = uuidUUIDToUuidUUID(source.ID)
+	domainAvailableRoom.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	domainAvailableRoom.HotelName = source.HotelName
+	domainAvailableRoom.RoomNumber = source.RoomNumber
+	domainAvailableRoom.RoomType = domain.RoomType(source.RoomType)
+	domainAvailableRoom.Capacity = converter.Int32ToInt(source.Capacity)
+	domainAvailableRoom.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
+	domainAvailableRoom.UpdatedAt = timeTimeToTimeTime(source.UpdatedAt)
+	return domainAvailableRoom
+}
+func ToDomainAvailableRooms(source []sqlc.FindAvailableRoomsRow) []domain.AvailableRoom {
+	var domainAvailableRoomList []domain.AvailableRoom
+	if source != nil {
+		domainAvailableRoomList = make([]domain.AvailableRoom, len(source))
+		for i := 0; i < len(source); i++ {
+			domainAvailableRoomList[i] = ToDomainAvailableRoom(source[i])
+		}
+	}
+	return domainAvailableRoomList
+}
 func ToDomainHotel(source sqlc.Hotel) domain.Hotel {
 	var domainHotel domain.Hotel
 	domainHotel.ID = uuidUUIDToUuidUUID(source.ID)

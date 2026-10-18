@@ -31,6 +31,12 @@ type HotelConverter interface {
 
 	// ToCreateRoomParams converts a domain Room entity to sqlc CreateRoomParams.
 	ToCreateRoomParams(source domain.Room) sqlc.CreateRoomParams
+
+	// ToDomainAvailableRoom converts a sqlc FindAvailableRoomsRow to a domain AvailableRoom entity.
+	ToDomainAvailableRoom(source sqlc.FindAvailableRoomsRow) domain.AvailableRoom
+
+	// ToDomainAvailableRooms converts a slice of sqlc FindAvailableRoomsRow to a domain AvailableRoom slice.
+	ToDomainAvailableRooms(source []sqlc.FindAvailableRoomsRow) []domain.AvailableRoom
 }
 
 func IntToInt32(source int) int32 {

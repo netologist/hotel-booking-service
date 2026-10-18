@@ -43,6 +43,17 @@ func (t RoomType) DefaultCapacity() int {
 	}
 }
 
+type AvailableRoom struct {
+	ID         uuid.UUID
+	HotelID    uuid.UUID
+	HotelName  string
+	RoomNumber string
+	RoomType   RoomType
+	Capacity   int
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 type Room struct {
 	ID         uuid.UUID
 	HotelID    uuid.UUID
@@ -112,4 +123,10 @@ type RoomRepository interface {
 	CreateBatch(ctx context.Context, rooms []Room) error
 	GetByHotelID(ctx context.Context, hotelID uuid.UUID) ([]Room, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Room, error)
+	FindAvailableRooms(
+		ctx context.Context,
+		hotelID *uuid.UUID,
+		checkIn, checkOut time.Time,
+		guests int,
+	) ([]AvailableRoom, error)
 }

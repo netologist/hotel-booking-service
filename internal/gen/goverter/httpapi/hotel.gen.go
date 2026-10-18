@@ -11,6 +11,26 @@ import (
 	"time"
 )
 
+func ToOpenAPIAvailableRoom(source domain.AvailableRoom) openapi.AvailableRoom {
+	var openapiAvailableRoom openapi.AvailableRoom
+	openapiAvailableRoom.Capacity = source.Capacity
+	openapiAvailableRoom.HotelId = uuidUUIDToUuidUUID(source.HotelID)
+	openapiAvailableRoom.HotelName = source.HotelName
+	openapiAvailableRoom.Id = uuidUUIDToUuidUUID(source.ID)
+	openapiAvailableRoom.RoomNumber = source.RoomNumber
+	openapiAvailableRoom.RoomType = converter.ToOpenAPIRoomType(source.RoomType)
+	return openapiAvailableRoom
+}
+func ToOpenAPIAvailableRooms(source []domain.AvailableRoom) []openapi.AvailableRoom {
+	var openapiAvailableRoomList []openapi.AvailableRoom
+	if source != nil {
+		openapiAvailableRoomList = make([]openapi.AvailableRoom, len(source))
+		for i := 0; i < len(source); i++ {
+			openapiAvailableRoomList[i] = ToOpenAPIAvailableRoom(source[i])
+		}
+	}
+	return openapiAvailableRoomList
+}
 func ToOpenAPIHotel(source domain.Hotel) openapi.Hotel {
 	var openapiHotel openapi.Hotel
 	openapiHotel.Address = source.Address

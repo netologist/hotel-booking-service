@@ -7,8 +7,10 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createRoom = `-- name: CreateRoom :one
@@ -44,6 +46,81 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const findAvailableRooms = `-- name: FindAvailableRooms :many
+SELECT 
+    r.id, 
+    r.hotel_id, 
+    h.name AS hotel_name, 
+    r.room_number, 
+    r.room_type, 
+    r.capacity, 
+    r.created_at, 
+    r.updated_at
+FROM rooms r
+JOIN hotels h ON h.id = r.hotel_id
+WHERE r.capacity >= $1::int
+  AND ($2::uuid IS NULL OR r.hotel_id = $2::uuid)
+  AND r.id NOT IN (
+      SELECT b.room_id
+      FROM bookings b
+      WHERE b.check_in_date < $3::date
+        AND b.check_out_date > $4::date
+  )
+ORDER BY h.name, r.room_number
+`
+
+type FindAvailableRoomsParams struct {
+	Guests       int32
+	HotelID      pgtype.UUID
+	CheckOutDate pgtype.Date
+	CheckInDate  pgtype.Date
+}
+
+type FindAvailableRoomsRow struct {
+	ID         uuid.UUID
+	HotelID    uuid.UUID
+	HotelName  string
+	RoomNumber string
+	RoomType   string
+	Capacity   int32
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+func (q *Queries) FindAvailableRooms(ctx context.Context, arg FindAvailableRoomsParams) ([]FindAvailableRoomsRow, error) {
+	rows, err := q.db.Query(ctx, findAvailableRooms,
+		arg.Guests,
+		arg.HotelID,
+		arg.CheckOutDate,
+		arg.CheckInDate,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindAvailableRoomsRow
+	for rows.Next() {
+		var i FindAvailableRoomsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.HotelID,
+			&i.HotelName,
+			&i.RoomNumber,
+			&i.RoomType,
+			&i.Capacity,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRoomByID = `-- name: GetRoomByID :one

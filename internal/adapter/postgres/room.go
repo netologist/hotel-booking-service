@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"time"
+
 	"github.com/google/uuid"
+
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/netologist/hotel-booking/internal/domain"
@@ -54,4 +58,30 @@ func (r *roomRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.Room
 		return domain.Room{}, err
 	}
 	return goverter_postgres.ToDomainRoom(row), nil
+}
+
+func (r *roomRepository) FindAvailableRooms(
+	ctx context.Context,
+	hotelID *uuid.UUID,
+	checkIn, checkOut time.Time,
+	guests int,
+) ([]domain.AvailableRoom, error) {
+	var pgHotelID pgtype.UUID
+	if hotelID != nil && *hotelID != uuid.Nil {
+		pgHotelID = pgtype.UUID{Bytes: *hotelID, Valid: true}
+	}
+
+	params := sqlc.FindAvailableRoomsParams{
+		Guests:       int32(guests), //nolint:gosec // guests count is a small bounded integer
+		HotelID:      pgHotelID,
+		CheckInDate:  pgtype.Date{Time: checkIn, Valid: true},
+		CheckOutDate: pgtype.Date{Time: checkOut, Valid: true},
+	}
+
+	rows, err := r.queries.FindAvailableRooms(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return goverter_postgres.ToDomainAvailableRooms(rows), nil
 }

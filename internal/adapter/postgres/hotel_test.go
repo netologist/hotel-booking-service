@@ -72,6 +72,17 @@ func (m *mockQuerier) TruncateAll(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
+
+func (m *mockQuerier) FindAvailableRooms(
+	ctx context.Context,
+	arg sqlc.FindAvailableRoomsParams,
+) ([]sqlc.FindAvailableRoomsRow, error) {
+	args := m.Called(ctx, arg)
+	if rows, ok := args.Get(0).([]sqlc.FindAvailableRoomsRow); ok {
+		return rows, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)
 	require.NotNil(t, repo)

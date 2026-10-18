@@ -10,6 +10,8 @@ import (
 	"github.com/netologist/hotel-booking/pkg/client"
 )
 
+const hotelContinental = "Continental"
+
 var _ = Describe("Admin API (/api/v1/seed, /api/v1/reset)", func() {
 	Context("Database lifecycle operations", func() {
 		It("resets and seeds database cleanly", func(ctx context.Context) {
@@ -21,7 +23,7 @@ var _ = Describe("Admin API (/api/v1/seed, /api/v1/reset)", func() {
 			Expect(resetResp.JSON200.Message).To(Equal("Database reset successfully"))
 
 			// Step 2: Verify hotels are empty
-			searchResp, err := apiClient.FindHotelsWithResponse(ctx, &client.FindHotelsParams{Name: "Continental"})
+			searchResp, err := apiClient.FindHotelsWithResponse(ctx, &client.FindHotelsParams{Name: hotelContinental})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(searchResp.StatusCode()).To(Equal(http.StatusOK))
 			Expect(searchResp.JSON200).NotTo(BeNil())
@@ -38,7 +40,7 @@ var _ = Describe("Admin API (/api/v1/seed, /api/v1/reset)", func() {
 			Expect(seedResp.JSON200.RoomsCount).To(Equal(12))
 
 			// Step 4: Verify seeded hotels are found with their 6 rooms each
-			searchContinental, err := apiClient.FindHotelsWithResponse(ctx, &client.FindHotelsParams{Name: "Continental"})
+			searchContinental, err := apiClient.FindHotelsWithResponse(ctx, &client.FindHotelsParams{Name: hotelContinental})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(searchContinental.StatusCode()).To(Equal(http.StatusOK))
 			Expect(searchContinental.JSON200).NotTo(BeNil())

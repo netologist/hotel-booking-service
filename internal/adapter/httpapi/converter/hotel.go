@@ -24,6 +24,12 @@ type HotelConverter interface {
 
 	// ToOpenAPIRooms converts a slice of domain Rooms to an OpenAPI Room response slice.
 	ToOpenAPIRooms(source []domain.Room) []openapi.Room
+
+	// ToOpenAPIAvailableRoom converts a domain AvailableRoom to an OpenAPI AvailableRoom response.
+	ToOpenAPIAvailableRoom(source domain.AvailableRoom) openapi.AvailableRoom
+
+	// ToOpenAPIAvailableRooms converts a slice of domain AvailableRooms to an OpenAPI AvailableRoom response slice.
+	ToOpenAPIAvailableRooms(source []domain.AvailableRoom) []openapi.AvailableRoom
 }
 
 func ToOpenAPIRoomType(source domain.RoomType) openapi.RoomType {

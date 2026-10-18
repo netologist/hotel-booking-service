@@ -8,7 +8,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Booking struct {
+	ID             uuid.UUID
+	Reference      string
+	RoomID         uuid.UUID
+	HotelID        uuid.UUID
+	GuestName      string
+	GuestEmail     string
+	CheckInDate    pgtype.Date
+	CheckOutDate   pgtype.Date
+	NumberOfGuests int32
+	CreatedAt      time.Time
+}
 
 type Hotel struct {
 	ID        uuid.UUID

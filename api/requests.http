@@ -85,3 +85,36 @@ Accept: application/json
 # response.body.message == "Database seeded successfully"
 # response.body.hotels_count == 2
 # response.body.rooms_count == 12
+
+### ==============================================================================
+### Find Available Rooms
+### ==============================================================================
+
+# @name FindAvailableRooms
+GET {{baseUrl}}/api/v1/rooms/available?check_in_date=2026-11-01&check_out_date=2026-11-05&guests=2
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200 OK
+# response.body.rooms is an array of rooms with capacity >= 2 (double and deluxe only)
+
+###
+# @name FindAvailableRoomsByHotel
+GET {{baseUrl}}/api/v1/rooms/available?check_in_date=2026-11-01&check_out_date=2026-11-05&guests=1&hotel_id={{createdHotelId}}
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200 OK
+# response.body.rooms contains available rooms for that specific hotel
+
+###
+# @name FindAvailableRoomsInvalidDates
+GET {{baseUrl}}/api/v1/rooms/available?check_in_date=2026-11-05&check_out_date=2026-11-01&guests=1
+Accept: application/problem+json
+
+###
+# Expected:
+# HTTP 400 Bad Request
+# response.body.code == "INVALID_QUERY_PARAMETER"

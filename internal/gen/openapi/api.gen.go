@@ -44,6 +44,23 @@ func (e RoomType) Valid() bool {
 	}
 }
 
+// AvailableRoom defines model for AvailableRoom.
+type AvailableRoom struct {
+	// Capacity Example: 2
+	Capacity int                `json:"capacity"`
+	HotelId  openapi_types.UUID `json:"hotel_id"`
+
+	// HotelName Example: Grand Budapest Hotel
+	HotelName string             `json:"hotel_name"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// RoomNumber Example: 101
+	RoomNumber string `json:"room_number"`
+
+	// RoomType Example: single
+	RoomType RoomType `json:"room_type"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -175,6 +192,21 @@ type FindHotelsParams struct {
 	Name string `form:"name" json:"name"`
 }
 
+// FindAvailableRoomsParams defines parameters for FindAvailableRooms.
+type FindAvailableRoomsParams struct {
+	// CheckInDate Check-in date (YYYY-MM-DD)
+	CheckInDate openapi_types.Date `form:"check_in_date" json:"check_in_date"`
+
+	// CheckOutDate Check-out date (YYYY-MM-DD)
+	CheckOutDate openapi_types.Date `form:"check_out_date" json:"check_out_date"`
+
+	// Guests Number of guests
+	Guests int `form:"guests" json:"guests"`
+
+	// HotelId Optional hotel ID filter
+	HotelId *openapi_types.UUID `form:"hotel_id,omitempty" json:"hotel_id,omitempty"`
+}
+
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
 
@@ -189,6 +221,9 @@ type ServerInterface interface {
 	// ResetDatabase Reset database removing all test data
 	// (POST /api/v1/reset)
 	ResetDatabase(w http.ResponseWriter, r *http.Request)
+	// FindAvailableRooms Find available rooms between two dates for a given number of people
+	// (GET /api/v1/rooms/available)
+	FindAvailableRooms(w http.ResponseWriter, r *http.Request, params FindAvailableRoomsParams)
 	// SeedDatabase Seed database with test data
 	// (POST /api/v1/seed)
 	SeedDatabase(w http.ResponseWriter, r *http.Request)
@@ -216,6 +251,12 @@ func (_ Unimplemented) CreateHotel(w http.ResponseWriter, r *http.Request) {
 // ResetDatabase Reset database removing all test data
 // (POST /api/v1/reset)
 func (_ Unimplemented) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// FindAvailableRooms Find available rooms between two dates for a given number of people
+// (GET /api/v1/rooms/available)
+func (_ Unimplemented) FindAvailableRooms(w http.ResponseWriter, r *http.Request, params FindAvailableRoomsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -292,6 +333,78 @@ func (siw *ServerInterfaceWrapper) ResetDatabase(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ResetDatabase(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FindAvailableRooms operation middleware
+func (siw *ServerInterfaceWrapper) FindAvailableRooms(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params FindAvailableRoomsParams
+
+	// ------------- Required query parameter "check_in_date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "check_in_date", r.URL.Query(), &params.CheckInDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "check_in_date"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_in_date", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "check_out_date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "check_out_date", r.URL.Query(), &params.CheckOutDate, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "check_out_date"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_out_date", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "guests" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "guests", r.URL.Query(), &params.Guests, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "guests"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "guests", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "hotel_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "hotel_id", r.URL.Query(), &params.HotelId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "hotel_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hotel_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FindAvailableRooms(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -455,6 +568,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v1/seed", wrapper.SeedDatabase)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/rooms/available", wrapper.FindAvailableRooms)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/reset", wrapper.ResetDatabase)
 	})
 
@@ -614,6 +730,62 @@ func (response ResetDatabase500ApplicationProblemPlusJSONResponse) VisitResetDat
 	return err
 }
 
+type FindAvailableRoomsRequestObject struct {
+	Params FindAvailableRoomsParams
+}
+
+type FindAvailableRoomsResponseObject interface {
+	VisitFindAvailableRoomsResponse(w http.ResponseWriter) error
+}
+
+type FindAvailableRooms200JSONResponse struct {
+	Rooms []AvailableRoom `json:"rooms"`
+}
+
+func (response FindAvailableRooms200JSONResponse) VisitFindAvailableRoomsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FindAvailableRooms400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response FindAvailableRooms400ApplicationProblemPlusJSONResponse) VisitFindAvailableRoomsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FindAvailableRooms500ApplicationProblemPlusJSONResponse struct {
+	InternalServerErrorApplicationProblemPlusJSONResponse
+}
+
+func (response FindAvailableRooms500ApplicationProblemPlusJSONResponse) VisitFindAvailableRoomsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SeedDatabaseRequestObject struct {
 }
 
@@ -703,6 +875,9 @@ type StrictServerInterface interface {
 	// ResetDatabase Reset database removing all test data
 	// (POST /api/v1/reset)
 	ResetDatabase(ctx context.Context, request ResetDatabaseRequestObject) (ResetDatabaseResponseObject, error)
+	// FindAvailableRooms Find available rooms between two dates for a given number of people
+	// (GET /api/v1/rooms/available)
+	FindAvailableRooms(ctx context.Context, request FindAvailableRoomsRequestObject) (FindAvailableRoomsResponseObject, error)
 	// SeedDatabase Seed database with test data
 	// (POST /api/v1/seed)
 	SeedDatabase(ctx context.Context, request SeedDatabaseRequestObject) (SeedDatabaseResponseObject, error)
@@ -831,6 +1006,32 @@ func (sh *strictHandler) ResetDatabase(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// FindAvailableRooms operation middleware
+func (sh *strictHandler) FindAvailableRooms(w http.ResponseWriter, r *http.Request, params FindAvailableRoomsParams) {
+	var request FindAvailableRoomsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.FindAvailableRooms(ctx, request.(FindAvailableRoomsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FindAvailableRooms")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(FindAvailableRoomsResponseObject); ok {
+		if err := validResponse.VisitFindAvailableRoomsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SeedDatabase operation middleware
 func (sh *strictHandler) SeedDatabase(w http.ResponseWriter, r *http.Request) {
 	var request SeedDatabaseRequestObject
@@ -884,33 +1085,37 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"JegFXsBj4vfh2hQyYPXXAA==",
+	"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",
+	"sHt5cRWw/u8A",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
