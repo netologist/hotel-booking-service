@@ -258,3 +258,69 @@ func (_c *MockBookingRepository_GetByReference_Call) RunAndReturn(run func(ctx c
 	_c.Call.Return(run)
 	return _c
 }
+
+// GetDetailsByReference provides a mock function for the type MockBookingRepository
+func (_mock *MockBookingRepository) GetDetailsByReference(ctx context.Context, reference string) (domain.BookingDetails, error) {
+	ret := _mock.Called(ctx, reference)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDetailsByReference")
+	}
+
+	var r0 domain.BookingDetails
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.BookingDetails, error)); ok {
+		return returnFunc(ctx, reference)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.BookingDetails); ok {
+		r0 = returnFunc(ctx, reference)
+	} else {
+		r0 = ret.Get(0).(domain.BookingDetails)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, reference)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockBookingRepository_GetDetailsByReference_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDetailsByReference'
+type MockBookingRepository_GetDetailsByReference_Call struct {
+	*mock.Call
+}
+
+// GetDetailsByReference is a helper method to define mock.On call
+//   - ctx context.Context
+//   - reference string
+func (_e *MockBookingRepository_Expecter) GetDetailsByReference(ctx any, reference any) *MockBookingRepository_GetDetailsByReference_Call {
+	return &MockBookingRepository_GetDetailsByReference_Call{Call: _e.mock.On("GetDetailsByReference", ctx, reference)}
+}
+
+func (_c *MockBookingRepository_GetDetailsByReference_Call) Run(run func(ctx context.Context, reference string)) *MockBookingRepository_GetDetailsByReference_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockBookingRepository_GetDetailsByReference_Call) Return(bookingDetails domain.BookingDetails, err error) *MockBookingRepository_GetDetailsByReference_Call {
+	_c.Call.Return(bookingDetails, err)
+	return _c
+}
+
+func (_c *MockBookingRepository_GetDetailsByReference_Call) RunAndReturn(run func(ctx context.Context, reference string) (domain.BookingDetails, error)) *MockBookingRepository_GetDetailsByReference_Call {
+	_c.Call.Return(run)
+	return _c
+}

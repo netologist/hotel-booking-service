@@ -68,3 +68,17 @@ func (b *bookingRepository) GetByReference(ctx context.Context, reference string
 	}
 	return goverter_postgres.ToDomainBooking(row), nil
 }
+
+func (b *bookingRepository) GetDetailsByReference(
+	ctx context.Context,
+	reference string,
+) (domain.BookingDetails, error) {
+	row, err := b.queries.GetBookingDetailsByReference(ctx, reference)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.BookingDetails{}, domain.ErrBookingNotFound
+		}
+		return domain.BookingDetails{}, err
+	}
+	return goverter_postgres.ToDomainBookingDetails(row), nil
+}

@@ -184,3 +184,28 @@ Accept: application/problem+json
 # Expected:
 # HTTP 400 Bad Request
 # response.body.code == "INVALID_BOOKING_REQUEST"
+
+### ==============================================================================
+### Find Booking Details
+### ==============================================================================
+
+# @name FindBookingDetails
+GET {{baseUrl}}/api/v1/bookings/{{bookingReference}}
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200 OK
+# response.body.reference == bookingReference
+# response.body.hotel.name is present
+# response.body.room.room_number is present
+
+###
+# @name FindBookingDetailsNotFound
+GET {{baseUrl}}/api/v1/bookings/NON-EXISTENT-BOOKING
+Accept: application/problem+json
+
+###
+# Expected:
+# HTTP 404 Not Found
+# response.body.code == "BOOKING_NOT_FOUND"

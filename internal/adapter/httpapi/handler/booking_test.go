@@ -150,3 +150,67 @@ func TestBookingHandler_BookRoom_RoomNotFound(t *testing.T) { //nolint:dupl // t
 	_, ok := resp.(openapi.BookRoom404ApplicationProblemPlusJSONResponse)
 	require.True(t, ok)
 }
+
+func TestBookingHandler_GetBookingByReference_Success(t *testing.T) {
+	t.Parallel()
+	mockService := usecasemocks.NewMockBookingService(t)
+	h := handler.NewBookingHandler(mockService)
+	ctx := t.Context()
+
+	expected := domain.BookingDetails{
+		Reference:    "BK-REF-100",
+		GuestName:    testGuestJohnDoe,
+		GuestEmail:   "john@example.com",
+		CheckInDate:  time.Now(),
+		CheckOutDate: time.Now().Add(24 * time.Hour),
+		HotelName:    "Grand Budapest Hotel",
+		RoomNumber:   "201",
+		RoomType:     domain.RoomTypeDouble,
+		RoomCapacity: 2,
+	}
+
+	mockService.EXPECT().GetBookingByReference(ctx, "BK-REF-100").Return(expected, nil).Once()
+
+	resp, err := h.GetBookingByReference(ctx, openapi.GetBookingByReferenceRequestObject{
+		BookingReference: "BK-REF-100",
+	})
+	require.NoError(t, err)
+
+	jsonResp, ok := resp.(openapi.GetBookingByReference200JSONResponse)
+	require.True(t, ok)
+	assert.Equal(t, "BK-REF-100", jsonResp.Reference)
+	assert.Equal(t, "Grand Budapest Hotel", jsonResp.Hotel.Name)
+}
+
+func TestBookingHandler_GetBookingByReference_NotFound(t *testing.T) {
+	t.Parallel()
+	mockService := usecasemocks.NewMockBookingService(t)
+	h := handler.NewBookingHandler(mockService)
+	ctx := t.Context()
+
+	mockService.EXPECT().GetBookingByReference(ctx, "NONEXISTENT").
+		Return(domain.BookingDetails{}, domain.ErrBookingNotFound).Once()
+
+	resp, err := h.GetBookingByReference(ctx, openapi.GetBookingByReferenceRequestObject{
+		BookingReference: "NONEXISTENT",
+	})
+	require.NoError(t, err)
+
+	_, ok := resp.(openapi.GetBookingByReference404ApplicationProblemPlusJSONResponse)
+	require.True(t, ok)
+}
+
+func TestBookingHandler_GetBookingByReference_Blank(t *testing.T) {
+	t.Parallel()
+	mockService := usecasemocks.NewMockBookingService(t)
+	h := handler.NewBookingHandler(mockService)
+	ctx := t.Context()
+
+	resp, err := h.GetBookingByReference(ctx, openapi.GetBookingByReferenceRequestObject{
+		BookingReference: "   ",
+	})
+	require.NoError(t, err)
+
+	_, ok := resp.(openapi.GetBookingByReference400ApplicationProblemPlusJSONResponse)
+	require.True(t, ok)
+}

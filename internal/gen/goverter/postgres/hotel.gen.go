@@ -77,6 +77,26 @@ func ToDomainBooking(source sqlc.Booking) domain.Booking {
 	domainBooking.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
 	return domainBooking
 }
+func ToDomainBookingDetails(source sqlc.GetBookingDetailsByReferenceRow) domain.BookingDetails {
+	var domainBookingDetails domain.BookingDetails
+	domainBookingDetails.ID = uuidUUIDToUuidUUID(source.ID)
+	domainBookingDetails.Reference = source.Reference
+	domainBookingDetails.GuestName = source.GuestName
+	domainBookingDetails.GuestEmail = source.GuestEmail
+	domainBookingDetails.CheckInDate = converter.DateToTime(source.CheckInDate)
+	domainBookingDetails.CheckOutDate = converter.DateToTime(source.CheckOutDate)
+	domainBookingDetails.NumberOfGuests = converter.Int32ToInt(source.NumberOfGuests)
+	domainBookingDetails.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
+	domainBookingDetails.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	domainBookingDetails.HotelName = source.HotelName
+	domainBookingDetails.HotelAddress = source.HotelAddress
+	domainBookingDetails.HotelCity = source.HotelCity
+	domainBookingDetails.RoomID = uuidUUIDToUuidUUID(source.RoomID)
+	domainBookingDetails.RoomNumber = source.RoomNumber
+	domainBookingDetails.RoomType = domain.RoomType(source.RoomType)
+	domainBookingDetails.RoomCapacity = converter.Int32ToInt(source.RoomCapacity)
+	return domainBookingDetails
+}
 func ToDomainHotel(source sqlc.Hotel) domain.Hotel {
 	var domainHotel domain.Hotel
 	domainHotel.ID = uuidUUIDToUuidUUID(source.ID)

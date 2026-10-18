@@ -158,6 +158,33 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/bookings/{bookingReference}:
+    get:
+      summary: Find booking details by booking reference
+      operationId: getBookingByReference
+      parameters:
+        - name: bookingReference
+          in: path
+          required: true
+          description: Unique booking reference code
+          schema:
+            type: string
+          example: "BK-20261018-AB12CD34"
+      responses:
+        '200':
+          description: Booking details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/reset:
     post:
       summary: Reset database removing all test data
@@ -461,6 +488,92 @@ components:
         hotel_id:
           type: string
           format: uuid
+        guest_name:
+          type: string
+          example: "John Doe"
+        guest_email:
+          type: string
+          example: "john@example.com"
+        check_in_date:
+          type: string
+          format: date
+          example: "2026-11-01"
+        check_out_date:
+          type: string
+          format: date
+          example: "2026-11-03"
+        number_of_guests:
+          type: integer
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+
+    BookingHotel:
+      type: object
+      required:
+        - id
+        - name
+        - address
+        - city
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Grand Budapest Hotel"
+        address:
+          type: string
+          example: "100 Alpine Way"
+        city:
+          type: string
+          example: "Lutz"
+
+    BookingRoom:
+      type: object
+      required:
+        - id
+        - room_number
+        - room_type
+        - capacity
+      properties:
+        id:
+          type: string
+          format: uuid
+        room_number:
+          type: string
+          example: "101"
+        room_type:
+          $ref: '#/components/schemas/RoomType'
+        capacity:
+          type: integer
+          example: 2
+
+    BookingDetails:
+      type: object
+      required:
+        - id
+        - reference
+        - hotel
+        - room
+        - guest_name
+        - guest_email
+        - check_in_date
+        - check_out_date
+        - number_of_guests
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          example: "BK-20261018-AB12CD34"
+        hotel:
+          $ref: '#/components/schemas/BookingHotel'
+        room:
+          $ref: '#/components/schemas/BookingRoom'
         guest_name:
           type: string
           example: "John Doe"

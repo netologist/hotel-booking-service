@@ -247,4 +247,57 @@ var _ = Describe("Bookings API (/api/v1/bookings)", func() {
 			Expect(conflictCount).To(Equal(concurrency-1), "all other concurrent attempts must be rejected with 409 Conflict")
 		})
 	})
+
+	Describe("GET /api/v1/bookings/{bookingReference} (Find Booking Details)", func() {
+		It("retrieves full booking details by reference", func(ctx context.Context) {
+			checkIn := openapi_types.Date{Time: time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)}
+			checkOut := openapi_types.Date{Time: time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)}
+
+			availResp, err := apiClient.FindAvailableRoomsWithResponse(ctx, &client.FindAvailableRoomsParams{
+				CheckInDate:  checkIn,
+				CheckOutDate: checkOut,
+				Guests:       2,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			targetRoom := availResp.JSON200.Rooms[0]
+
+			bookResp, err := apiClient.BookRoomWithResponse(ctx, client.BookRoomJSONRequestBody{
+				RoomId:         targetRoom.Id,
+				CheckInDate:    checkIn,
+				CheckOutDate:   checkOut,
+				NumberOfGuests: 2,
+				GuestName:      "Sherlock Holmes",
+				GuestEmail:     openapi_types.Email("sherlock@bakerstreet.com"),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bookResp.StatusCode()).To(Equal(http.StatusCreated))
+			ref := bookResp.JSON201.Reference
+
+			// Retrieve details by reference
+			getResp, err := apiClient.GetBookingByReferenceWithResponse(ctx, ref)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(getResp.StatusCode()).To(Equal(http.StatusOK))
+			Expect(getResp.JSON200).NotTo(BeNil())
+
+			details := getResp.JSON200
+			Expect(details.Reference).To(Equal(ref))
+			Expect(details.GuestName).To(Equal("Sherlock Holmes"))
+			Expect(details.GuestEmail).To(Equal("sherlock@bakerstreet.com"))
+			Expect(details.NumberOfGuests).To(Equal(2))
+			Expect(details.Hotel.Id).To(Equal(targetRoom.HotelId))
+			Expect(details.Hotel.Name).To(Equal(targetRoom.HotelName))
+			Expect(details.Room.Id).To(Equal(targetRoom.Id))
+			Expect(details.Room.RoomNumber).To(Equal(targetRoom.RoomNumber))
+			Expect(details.Room.Capacity).To(Equal(targetRoom.Capacity))
+		})
+
+		It("returns HTTP 404 when booking reference is not found", func(ctx context.Context) {
+			getResp, err := apiClient.GetBookingByReferenceWithResponse(ctx, "NON-EXISTENT-BOOKING")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(getResp.StatusCode()).To(Equal(http.StatusNotFound))
+			Expect(getResp.ContentType()).To(ContainSubstring("application/problem+json"))
+			Expect(getResp.ApplicationproblemJSON404).NotTo(BeNil())
+			Expect(*getResp.ApplicationproblemJSON404.Code).To(Equal("BOOKING_NOT_FOUND"))
+		})
+	})
 })

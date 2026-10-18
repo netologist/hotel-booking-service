@@ -105,6 +105,57 @@ type Booking struct {
 	RoomId    openapi_types.UUID `json:"room_id"`
 }
 
+// BookingDetails defines model for BookingDetails.
+type BookingDetails struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+	CreatedAt    time.Time          `json:"created_at"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail string `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string             `json:"guest_name"`
+	Hotel     BookingHotel       `json:"hotel"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int `json:"number_of_guests"`
+
+	// Reference Example: BK-20261018-AB12CD34
+	Reference string      `json:"reference"`
+	Room      BookingRoom `json:"room"`
+}
+
+// BookingHotel defines model for BookingHotel.
+type BookingHotel struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
+
+	// City Example: Lutz
+	City string             `json:"city"`
+	Id   openapi_types.UUID `json:"id"`
+
+	// Name Example: Grand Budapest Hotel
+	Name string `json:"name"`
+}
+
+// BookingRoom defines model for BookingRoom.
+type BookingRoom struct {
+	// Capacity Example: 2
+	Capacity int                `json:"capacity"`
+	Id       openapi_types.UUID `json:"id"`
+
+	// RoomNumber Example: 101
+	RoomNumber string `json:"room_number"`
+
+	// RoomType Example: single
+	RoomType RoomType `json:"room_type"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -265,6 +316,9 @@ type ServerInterface interface {
 	// BookRoom Book a room
 	// (POST /api/v1/bookings)
 	BookRoom(w http.ResponseWriter, r *http.Request)
+	// GetBookingByReference Find booking details by booking reference
+	// (GET /api/v1/bookings/{bookingReference})
+	GetBookingByReference(w http.ResponseWriter, r *http.Request, bookingReference string)
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	// (GET /api/v1/hotels)
 	FindHotels(w http.ResponseWriter, r *http.Request, params FindHotelsParams)
@@ -292,6 +346,12 @@ type Unimplemented struct{}
 // BookRoom Book a room
 // (POST /api/v1/bookings)
 func (_ Unimplemented) BookRoom(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBookingByReference Find booking details by booking reference
+// (GET /api/v1/bookings/{bookingReference})
+func (_ Unimplemented) GetBookingByReference(w http.ResponseWriter, r *http.Request, bookingReference string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -345,6 +405,32 @@ func (siw *ServerInterfaceWrapper) BookRoom(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.BookRoom(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBookingByReference operation middleware
+func (siw *ServerInterfaceWrapper) GetBookingByReference(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bookingReference" -------------
+	var bookingReference string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bookingReference", chi.URLParam(r, "bookingReference"), &bookingReference, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bookingReference", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBookingByReference(w, r, bookingReference)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -647,6 +733,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v1/bookings", wrapper.BookRoom)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/bookings/{bookingReference}", wrapper.GetBookingByReference)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/reset", wrapper.ResetDatabase)
 	})
 
@@ -736,6 +825,76 @@ type BookRoom500ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response BookRoom500ApplicationProblemPlusJSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBookingByReferenceRequestObject struct {
+	BookingReference string `json:"bookingReference"`
+}
+
+type GetBookingByReferenceResponseObject interface {
+	VisitGetBookingByReferenceResponse(w http.ResponseWriter) error
+}
+
+type GetBookingByReference200JSONResponse BookingDetails
+
+func (response GetBookingByReference200JSONResponse) VisitGetBookingByReferenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBookingByReference400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetBookingByReference400ApplicationProblemPlusJSONResponse) VisitGetBookingByReferenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBookingByReference404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetBookingByReference404ApplicationProblemPlusJSONResponse) VisitGetBookingByReferenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBookingByReference500ApplicationProblemPlusJSONResponse struct {
+	InternalServerErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetBookingByReference500ApplicationProblemPlusJSONResponse) VisitGetBookingByReferenceResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1033,6 +1192,9 @@ type StrictServerInterface interface {
 	// BookRoom Book a room
 	// (POST /api/v1/bookings)
 	BookRoom(ctx context.Context, request BookRoomRequestObject) (BookRoomResponseObject, error)
+	// GetBookingByReference Find booking details by booking reference
+	// (GET /api/v1/bookings/{bookingReference})
+	GetBookingByReference(ctx context.Context, request GetBookingByReferenceRequestObject) (GetBookingByReferenceResponseObject, error)
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	// (GET /api/v1/hotels)
 	FindHotels(ctx context.Context, request FindHotelsRequestObject) (FindHotelsResponseObject, error)
@@ -1116,6 +1278,32 @@ func (sh *strictHandler) BookRoom(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(BookRoomResponseObject); ok {
 		if err := validResponse.VisitBookRoomResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBookingByReference operation middleware
+func (sh *strictHandler) GetBookingByReference(w http.ResponseWriter, r *http.Request, bookingReference string) {
+	var request GetBookingByReferenceRequestObject
+
+	request.BookingReference = bookingReference
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBookingByReference(ctx, request.(GetBookingByReferenceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBookingByReference")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBookingByReferenceResponseObject); ok {
+		if err := validResponse.VisitGetBookingByReferenceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1283,41 +1471,43 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

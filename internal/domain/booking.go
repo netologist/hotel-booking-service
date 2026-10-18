@@ -37,6 +37,25 @@ type Booking struct {
 	CreatedAt      time.Time
 }
 
+type BookingDetails struct {
+	ID             uuid.UUID
+	Reference      string
+	GuestName      string
+	GuestEmail     string
+	CheckInDate    time.Time
+	CheckOutDate   time.Time
+	NumberOfGuests int
+	CreatedAt      time.Time
+	HotelID        uuid.UUID
+	HotelName      string
+	HotelAddress   string
+	HotelCity      string
+	RoomID         uuid.UUID
+	RoomNumber     string
+	RoomType       RoomType
+	RoomCapacity   int
+}
+
 func GenerateBookingReference() string {
 	b := make([]byte, bookingRefRandomBytes)
 	_, _ = rand.Read(b)
@@ -98,4 +117,5 @@ type BookingRepository interface {
 	Create(ctx context.Context, booking Booking) (Booking, error)
 	CheckConflict(ctx context.Context, roomID uuid.UUID, checkIn, checkOut time.Time) (bool, error)
 	GetByReference(ctx context.Context, reference string) (Booking, error)
+	GetDetailsByReference(ctx context.Context, reference string) (BookingDetails, error)
 }

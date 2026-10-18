@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"errors"
+	"strings"
 
+	"github.com/netologist/hotel-booking/internal/adapter/httpapi/converter"
 	"github.com/netologist/hotel-booking/internal/adapter/httpapi/problem"
 	"github.com/netologist/hotel-booking/internal/domain"
 	goverter_httpapi "github.com/netologist/hotel-booking/internal/gen/goverter/httpapi"
@@ -59,4 +61,30 @@ func (h *BookingHandler) BookRoom(
 	}
 
 	return openapi.BookRoom201JSONResponse(goverter_httpapi.ToOpenAPIBooking(booking)), nil
+}
+
+func (h *BookingHandler) GetBookingByReference(
+	ctx context.Context,
+	request openapi.GetBookingByReferenceRequestObject,
+) (openapi.GetBookingByReferenceResponseObject, error) {
+	ref := strings.TrimSpace(request.BookingReference)
+	if ref == "" {
+		prob := problem.BadRequest("booking reference is required", "/api/v1/bookings", "INVALID_BOOKING_REFERENCE", nil)
+		return openapi.GetBookingByReference400ApplicationProblemPlusJSONResponse{
+			BadRequestApplicationProblemPlusJSONResponse: openapi.BadRequestApplicationProblemPlusJSONResponse(prob),
+		}, nil
+	}
+
+	details, err := h.bookingService.GetBookingByReference(ctx, ref)
+	if err != nil {
+		if errors.Is(err, domain.ErrBookingNotFound) {
+			prob := problem.NotFound("booking not found", "/api/v1/bookings/"+ref, "BOOKING_NOT_FOUND")
+			return openapi.GetBookingByReference404ApplicationProblemPlusJSONResponse{
+				NotFoundApplicationProblemPlusJSONResponse: openapi.NotFoundApplicationProblemPlusJSONResponse(prob),
+			}, nil
+		}
+		return nil, err
+	}
+
+	return openapi.GetBookingByReference200JSONResponse(converter.ToOpenAPIBookingDetails(details)), nil
 }

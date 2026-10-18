@@ -145,22 +145,22 @@ func (_c *MockBookingService_BookRoom_Call) RunAndReturn(run func(ctx context.Co
 }
 
 // GetBookingByReference provides a mock function for the type MockBookingService
-func (_mock *MockBookingService) GetBookingByReference(ctx context.Context, reference string) (domain.Booking, error) {
+func (_mock *MockBookingService) GetBookingByReference(ctx context.Context, reference string) (domain.BookingDetails, error) {
 	ret := _mock.Called(ctx, reference)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetBookingByReference")
 	}
 
-	var r0 domain.Booking
+	var r0 domain.BookingDetails
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.Booking, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.BookingDetails, error)); ok {
 		return returnFunc(ctx, reference)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.Booking); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.BookingDetails); ok {
 		r0 = returnFunc(ctx, reference)
 	} else {
-		r0 = ret.Get(0).(domain.Booking)
+		r0 = ret.Get(0).(domain.BookingDetails)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, reference)
@@ -200,12 +200,12 @@ func (_c *MockBookingService_GetBookingByReference_Call) Run(run func(ctx contex
 	return _c
 }
 
-func (_c *MockBookingService_GetBookingByReference_Call) Return(booking domain.Booking, err error) *MockBookingService_GetBookingByReference_Call {
-	_c.Call.Return(booking, err)
+func (_c *MockBookingService_GetBookingByReference_Call) Return(bookingDetails domain.BookingDetails, err error) *MockBookingService_GetBookingByReference_Call {
+	_c.Call.Return(bookingDetails, err)
 	return _c
 }
 
-func (_c *MockBookingService_GetBookingByReference_Call) RunAndReturn(run func(ctx context.Context, reference string) (domain.Booking, error)) *MockBookingService_GetBookingByReference_Call {
+func (_c *MockBookingService_GetBookingByReference_Call) RunAndReturn(run func(ctx context.Context, reference string) (domain.BookingDetails, error)) *MockBookingService_GetBookingByReference_Call {
 	_c.Call.Return(run)
 	return _c
 }

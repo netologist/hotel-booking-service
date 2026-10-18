@@ -144,6 +144,41 @@ func TestBookingService_BookRoom_RoomNotFound(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrRoomNotFound)
 }
 
+func TestBookingService_GetBookingByReference_Success(t *testing.T) {
+	t.Parallel()
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	mockBookingRepo := domainmocks.NewMockBookingRepository(t)
+
+	service := usecase.NewBookingService(mockRoomRepo, mockBookingRepo, nil)
+	ctx := t.Context()
+
+	expected := domain.BookingDetails{
+		Reference: "BK-REF-1",
+		GuestName: "John Doe",
+	}
+	mockBookingRepo.EXPECT().GetDetailsByReference(ctx, "BK-REF-1").Return(expected, nil).Once()
+
+	details, err := service.GetBookingByReference(ctx, "BK-REF-1")
+	require.NoError(t, err)
+	assert.Equal(t, expected, details)
+}
+
+func TestBookingService_GetBookingByReference_Error(t *testing.T) {
+	t.Parallel()
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	mockBookingRepo := domainmocks.NewMockBookingRepository(t)
+
+	service := usecase.NewBookingService(mockRoomRepo, mockBookingRepo, nil)
+	ctx := t.Context()
+
+	mockBookingRepo.EXPECT().GetDetailsByReference(ctx, "BK-REF-1").
+		Return(domain.BookingDetails{}, domain.ErrBookingNotFound).Once()
+
+	_, err := service.GetBookingByReference(ctx, "BK-REF-1")
+	require.Error(t, err)
+	require.ErrorIs(t, err, domain.ErrBookingNotFound)
+}
+
 func TestAsyncEmailNotifier(t *testing.T) {
 	t.Parallel()
 	notifier := usecase.NewAsyncEmailNotifier(10 * time.Millisecond)

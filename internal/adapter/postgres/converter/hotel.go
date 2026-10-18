@@ -47,6 +47,9 @@ type HotelConverter interface {
 
 	// ToCreateBookingParams converts a domain Booking entity to sqlc CreateBookingParams.
 	ToCreateBookingParams(source domain.Booking) sqlc.CreateBookingParams
+
+	// ToDomainBookingDetails converts sqlc GetBookingDetailsByReferenceRow to domain BookingDetails.
+	ToDomainBookingDetails(source sqlc.GetBookingDetailsByReferenceRow) domain.BookingDetails
 }
 
 func IntToInt32(source int) int32 {

@@ -18,7 +18,7 @@ type BookingService interface {
 		checkInDate, checkOutDate string,
 		numberOfGuests int,
 	) (domain.Booking, error)
-	GetBookingByReference(ctx context.Context, reference string) (domain.Booking, error)
+	GetBookingByReference(ctx context.Context, reference string) (domain.BookingDetails, error)
 }
 
 type bookingService struct {
@@ -100,6 +100,10 @@ func (s *bookingService) BookRoom(
 	return createdBooking, nil
 }
 
-func (s *bookingService) GetBookingByReference(ctx context.Context, reference string) (domain.Booking, error) {
-	return s.bookingRepo.GetByReference(ctx, reference)
+func (s *bookingService) GetBookingByReference(ctx context.Context, reference string) (domain.BookingDetails, error) {
+	details, err := s.bookingRepo.GetDetailsByReference(ctx, reference)
+	if err != nil {
+		return domain.BookingDetails{}, fmt.Errorf("get booking details: %w", err)
+	}
+	return details, nil
 }

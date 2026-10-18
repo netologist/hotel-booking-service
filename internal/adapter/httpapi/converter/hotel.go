@@ -46,3 +46,28 @@ func ToOpenAPIRoomType(source domain.RoomType) openapi.RoomType {
 func TimeToOpenAPIDate(source time.Time) openapi_types.Date {
 	return openapi_types.Date{Time: source}
 }
+
+func ToOpenAPIBookingDetails(source domain.BookingDetails) openapi.BookingDetails {
+	return openapi.BookingDetails{
+		Id:             source.ID,
+		Reference:      source.Reference,
+		GuestName:      source.GuestName,
+		GuestEmail:     source.GuestEmail,
+		CheckInDate:    openapi_types.Date{Time: source.CheckInDate},
+		CheckOutDate:   openapi_types.Date{Time: source.CheckOutDate},
+		NumberOfGuests: source.NumberOfGuests,
+		CreatedAt:      source.CreatedAt,
+		Hotel: openapi.BookingHotel{
+			Id:      source.HotelID,
+			Name:    source.HotelName,
+			Address: source.HotelAddress,
+			City:    source.HotelCity,
+		},
+		Room: openapi.BookingRoom{
+			Id:         source.RoomID,
+			RoomNumber: source.RoomNumber,
+			RoomType:   openapi.RoomType(source.RoomType),
+			Capacity:   source.RoomCapacity,
+		},
+	}
+}

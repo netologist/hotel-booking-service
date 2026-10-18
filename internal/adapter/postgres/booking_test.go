@@ -15,7 +15,11 @@ import (
 	"github.com/netologist/hotel-booking/internal/gen/sqlc"
 )
 
-const testBookingRef = "BK-123456"
+const (
+	testBookingRef = "BK-123456"
+	testGuestName  = "John Doe"
+	testGuestEmail = "john@example.com"
+)
 
 func TestNewBookingRepository(t *testing.T) {
 	repo := NewBookingRepository(nil)
@@ -38,8 +42,8 @@ func TestBookingRepository_Create_Success(t *testing.T) {
 		Reference:      testBookingRef,
 		RoomID:         roomID,
 		HotelID:        hotelID,
-		GuestName:      "John Doe",
-		GuestEmail:     "john@example.com",
+		GuestName:      testGuestName,
+		GuestEmail:     testGuestEmail,
 		CheckInDate:    checkIn,
 		CheckOutDate:   checkOut,
 		NumberOfGuests: 2,
@@ -52,8 +56,8 @@ func TestBookingRepository_Create_Success(t *testing.T) {
 		Reference:      testBookingRef,
 		RoomID:         roomID,
 		HotelID:        hotelID,
-		GuestName:      "John Doe",
-		GuestEmail:     "john@example.com",
+		GuestName:      testGuestName,
+		GuestEmail:     testGuestEmail,
 		CheckInDate:    pgtype.Date{Time: checkIn, Valid: true},
 		CheckOutDate:   pgtype.Date{Time: checkOut, Valid: true},
 		NumberOfGuests: 2,
@@ -91,6 +95,50 @@ func TestBookingRepository_GetByReference_NotFound(t *testing.T) {
 	q.On("GetBookingByReference", ctx, "NONEXISTENT").Return(sqlc.Booking{}, pgx.ErrNoRows).Once()
 
 	_, err := repo.GetByReference(ctx, "NONEXISTENT")
+	require.ErrorIs(t, err, domain.ErrBookingNotFound)
+	q.AssertExpectations(t)
+}
+
+func TestBookingRepository_GetDetailsByReference_Success(t *testing.T) {
+	q := &mockQuerier{}
+	repo := NewBookingRepositoryWithQuerier(nil, q)
+	ctx := t.Context()
+
+	q.On("GetBookingDetailsByReference", ctx, testBookingRef).Return(sqlc.GetBookingDetailsByReferenceRow{
+		ID:             uuid.New(),
+		Reference:      testBookingRef,
+		GuestName:      testGuestName,
+		GuestEmail:     testGuestEmail,
+		CheckInDate:    pgtype.Date{Time: time.Now(), Valid: true},
+		CheckOutDate:   pgtype.Date{Time: time.Now().Add(24 * time.Hour), Valid: true},
+		NumberOfGuests: 2,
+		CreatedAt:      time.Now(),
+		HotelID:        uuid.New(),
+		HotelName:      "Grand Budapest Hotel",
+		HotelAddress:   "100 Alpine Way",
+		HotelCity:      "Lutz",
+		RoomID:         uuid.New(),
+		RoomNumber:     "201",
+		RoomType:       "double",
+		RoomCapacity:   2,
+	}, nil).Once()
+
+	details, err := repo.GetDetailsByReference(ctx, testBookingRef)
+	require.NoError(t, err)
+	assert.Equal(t, testBookingRef, details.Reference)
+	assert.Equal(t, "Grand Budapest Hotel", details.HotelName)
+	q.AssertExpectations(t)
+}
+
+func TestBookingRepository_GetDetailsByReference_NotFound(t *testing.T) {
+	q := &mockQuerier{}
+	repo := NewBookingRepositoryWithQuerier(nil, q)
+	ctx := t.Context()
+
+	q.On("GetBookingDetailsByReference", ctx, "NONEXISTENT").
+		Return(sqlc.GetBookingDetailsByReferenceRow{}, pgx.ErrNoRows).Once()
+
+	_, err := repo.GetDetailsByReference(ctx, "NONEXISTENT")
 	require.ErrorIs(t, err, domain.ErrBookingNotFound)
 	q.AssertExpectations(t)
 }

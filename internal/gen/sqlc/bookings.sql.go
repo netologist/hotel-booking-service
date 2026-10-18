@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -103,6 +104,73 @@ func (q *Queries) GetBookingByReference(ctx context.Context, reference string) (
 		&i.CheckOutDate,
 		&i.NumberOfGuests,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getBookingDetailsByReference = `-- name: GetBookingDetailsByReference :one
+SELECT 
+    b.id,
+    b.reference,
+    b.guest_name,
+    b.guest_email,
+    b.check_in_date,
+    b.check_out_date,
+    b.number_of_guests,
+    b.created_at,
+    h.id AS hotel_id,
+    h.name AS hotel_name,
+    h.address AS hotel_address,
+    h.city AS hotel_city,
+    r.id AS room_id,
+    r.room_number,
+    r.room_type,
+    r.capacity AS room_capacity
+FROM bookings b
+JOIN hotels h ON h.id = b.hotel_id
+JOIN rooms r ON r.id = b.room_id
+WHERE b.reference = $1
+`
+
+type GetBookingDetailsByReferenceRow struct {
+	ID             uuid.UUID
+	Reference      string
+	GuestName      string
+	GuestEmail     string
+	CheckInDate    pgtype.Date
+	CheckOutDate   pgtype.Date
+	NumberOfGuests int32
+	CreatedAt      time.Time
+	HotelID        uuid.UUID
+	HotelName      string
+	HotelAddress   string
+	HotelCity      string
+	RoomID         uuid.UUID
+	RoomNumber     string
+	RoomType       string
+	RoomCapacity   int32
+}
+
+func (q *Queries) GetBookingDetailsByReference(ctx context.Context, reference string) (GetBookingDetailsByReferenceRow, error) {
+	row := q.db.QueryRow(ctx, getBookingDetailsByReference, reference)
+	var i GetBookingDetailsByReferenceRow
+	err := row.Scan(
+		&i.ID,
+		&i.Reference,
+		&i.GuestName,
+		&i.GuestEmail,
+		&i.CheckInDate,
+		&i.CheckOutDate,
+		&i.NumberOfGuests,
+		&i.CreatedAt,
+		&i.HotelID,
+		&i.HotelName,
+		&i.HotelAddress,
+		&i.HotelCity,
+		&i.RoomID,
+		&i.RoomNumber,
+		&i.RoomType,
+		&i.RoomCapacity,
 	)
 	return i, err
 }

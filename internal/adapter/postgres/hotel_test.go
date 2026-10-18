@@ -116,6 +116,17 @@ func (m *mockQuerier) GetBookingByReference(ctx context.Context, reference strin
 	}
 	return sqlc.Booking{}, args.Error(1)
 }
+
+func (m *mockQuerier) GetBookingDetailsByReference(
+	ctx context.Context,
+	reference string,
+) (sqlc.GetBookingDetailsByReferenceRow, error) {
+	args := m.Called(ctx, reference)
+	if row, ok := args.Get(0).(sqlc.GetBookingDetailsByReferenceRow); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.GetBookingDetailsByReferenceRow{}, args.Error(1)
+}
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)
 	require.NotNil(t, repo)

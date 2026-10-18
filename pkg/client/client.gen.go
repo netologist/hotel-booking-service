@@ -100,6 +100,57 @@ type Booking struct {
 	RoomId    openapi_types.UUID `json:"room_id"`
 }
 
+// BookingDetails defines model for BookingDetails.
+type BookingDetails struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+	CreatedAt    time.Time          `json:"created_at"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail string `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string             `json:"guest_name"`
+	Hotel     BookingHotel       `json:"hotel"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int `json:"number_of_guests"`
+
+	// Reference Example: BK-20261018-AB12CD34
+	Reference string      `json:"reference"`
+	Room      BookingRoom `json:"room"`
+}
+
+// BookingHotel defines model for BookingHotel.
+type BookingHotel struct {
+	// Address Example: 100 Alpine Way
+	Address string `json:"address"`
+
+	// City Example: Lutz
+	City string             `json:"city"`
+	Id   openapi_types.UUID `json:"id"`
+
+	// Name Example: Grand Budapest Hotel
+	Name string `json:"name"`
+}
+
+// BookingRoom defines model for BookingRoom.
+type BookingRoom struct {
+	// Capacity Example: 2
+	Capacity int                `json:"capacity"`
+	Id       openapi_types.UUID `json:"id"`
+
+	// RoomNumber Example: 101
+	RoomNumber string `json:"room_number"`
+
+	// RoomType Example: single
+	RoomType RoomType `json:"room_type"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -343,6 +394,11 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
 	BookRoom(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetBookingByReference Find booking details by booking reference
+	//
+	// Corresponds with GET /api/v1/bookings/{bookingReference} (the `GetBookingByReference` operationId).
+	GetBookingByReference(ctx context.Context, bookingReference string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	//
 	// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
@@ -407,6 +463,21 @@ func (c *Client) BookRoomWithBody(ctx context.Context, contentType string, body 
 // Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
 func (c *Client) BookRoom(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBookRoomRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBookingByReference Find booking details by booking reference
+//
+// Corresponds with GET /api/v1/bookings/{bookingReference} (the `GetBookingByReference` operationId).
+func (c *Client) GetBookingByReference(ctx context.Context, bookingReference string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBookingByReferenceRequest(c.Server, bookingReference)
 	if err != nil {
 		return nil, err
 	}
@@ -562,6 +633,40 @@ func NewBookRoomRequestWithBody(server string, contentType string, body io.Reade
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBookingByReferenceRequest constructs an http.Request for the GetBookingByReference method
+func NewGetBookingByReferenceRequest(server string, bookingReference string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "bookingReference", bookingReference, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/bookings/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -873,6 +978,13 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
 	BookRoomWithResponse(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*BookRoomResponse, error)
 
+	// GetBookingByReferenceWithResponse Find booking details by booking reference
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/bookings/{bookingReference} (the `GetBookingByReference` operationId).
+	GetBookingByReferenceWithResponse(ctx context.Context, bookingReference string, reqEditors ...RequestEditorFn) (*GetBookingByReferenceResponse, error)
+
 	// FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -986,6 +1098,68 @@ func (r BookRoomResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r BookRoomResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBookingByReferenceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BookingDetails
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *BadRequest
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *NotFound
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *InternalServerError
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBookingByReferenceResponse) GetJSON200() *BookingDetails {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetBookingByReferenceResponse) GetApplicationproblemJSON400() *BadRequest {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBookingByReferenceResponse) GetApplicationproblemJSON404() *NotFound {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetBookingByReferenceResponse) GetApplicationproblemJSON500() *InternalServerError {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBookingByReferenceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBookingByReferenceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBookingByReferenceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBookingByReferenceResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -1343,6 +1517,19 @@ func (c *ClientWithResponses) BookRoomWithResponse(ctx context.Context, body Boo
 	return ParseBookRoomResponse(rsp)
 }
 
+// GetBookingByReferenceWithResponse Find booking details by booking reference
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/bookings/{bookingReference} (the `GetBookingByReference` operationId).
+func (c *ClientWithResponses) GetBookingByReferenceWithResponse(ctx context.Context, bookingReference string, reqEditors ...RequestEditorFn) (*GetBookingByReferenceResponse, error) {
+	rsp, err := c.GetBookingByReference(ctx, bookingReference, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBookingByReferenceResponse(rsp)
+}
+
 // FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1475,6 +1662,53 @@ func ParseBookRoomResponse(rsp *http.Response) (*BookRoomResponse, error) {
 			return nil, err
 		}
 		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBookingByReferenceResponse parses an HTTP response from a GetBookingByReferenceWithResponse call
+func ParseGetBookingByReferenceResponse(rsp *http.Response) (*GetBookingByReferenceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBookingByReferenceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BookingDetails
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerError

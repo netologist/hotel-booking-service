@@ -17,6 +17,7 @@ type Querier interface {
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error)
 	FindAvailableRooms(ctx context.Context, arg FindAvailableRoomsParams) ([]FindAvailableRoomsRow, error)
 	GetBookingByReference(ctx context.Context, reference string) (Booking, error)
+	GetBookingDetailsByReference(ctx context.Context, reference string) (GetBookingDetailsByReferenceRow, error)
 	GetRoomByID(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomForUpdate(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]Room, error)
