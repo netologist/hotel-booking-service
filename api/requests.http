@@ -32,9 +32,9 @@ Accept: application/json
 # response.body.name == "Grand Budapest Hotel"
 # response.body.id is a generated UUIDv7
 
-### Capture created hotel ID
+### Capture created hotel and room IDs
 @createdHotelId = {{CreateHotel.response.body.id}}
-
+@createdRoomId = {{CreateHotel.response.body.rooms[0].id}}
 ### ==============================================================================
 ### Find Hotels
 ### ==============================================================================
@@ -129,7 +129,7 @@ Content-Type: {{contentType}}
 Accept: application/json
 
 {
-  "room_id": "{{createdHotelId}}",
+  "room_id": "{{createdRoomId}}",
   "check_in_date": "2026-11-01",
   "check_out_date": "2026-11-03",
   "number_of_guests": 2,
@@ -152,7 +152,7 @@ Content-Type: {{contentType}}
 Accept: application/problem+json
 
 {
-  "room_id": "{{createdHotelId}}",
+  "room_id": "{{createdRoomId}}",
   "check_in_date": "2026-11-02",
   "check_out_date": "2026-11-04",
   "number_of_guests": 2,
@@ -172,7 +172,7 @@ Content-Type: {{contentType}}
 Accept: application/problem+json
 
 {
-  "room_id": "{{createdHotelId}}",
+  "room_id": "{{createdRoomId}}",
   "check_in_date": "2026-11-01",
   "check_out_date": "2026-11-03",
   "number_of_guests": 10,
