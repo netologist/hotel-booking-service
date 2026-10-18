@@ -34,8 +34,9 @@ var _ = Describe("Hotels API (/api/v1/hotels)", func() {
 			Expect(created.City).To(Equal("Metropolis"))
 			Expect(created.CreatedAt).NotTo(BeZero())
 			Expect(created.UpdatedAt).NotTo(BeZero())
+			Expect(created.Rooms).NotTo(BeNil())
+			Expect(*created.Rooms).To(HaveLen(6))
 		})
-
 		It("returns HTTP 400 when body has validation errors", func(ctx context.Context) {
 			resp, err := apiClient.CreateHotelWithResponse(ctx, client.CreateHotelJSONRequestBody{
 				Name:    "",

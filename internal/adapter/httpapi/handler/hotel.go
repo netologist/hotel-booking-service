@@ -64,6 +64,9 @@ func (h *HotelHandler) FindHotels(
 	}
 
 	responseHotels := goverter_httpapi.ToOpenAPIHotels(hotels)
+	if responseHotels == nil {
+		responseHotels = []openapi.Hotel{}
+	}
 
 	return openapi.FindHotels200JSONResponse{
 		Hotels: &responseHotels,

@@ -24,13 +24,15 @@ const (
 
 func TestNewHotelService(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	require.NotNil(t, service)
 }
 
 func TestHotelService_CreateHotel_Success(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	ctx := t.Context()
 
 	fixedTime := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
@@ -53,6 +55,10 @@ func TestHotelService_CreateHotel_Success(t *testing.T) {
 		}, nil
 	}).Once()
 
+	mockRoomRepo.EXPECT().CreateBatch(ctx, mock.MatchedBy(func(rooms []domain.Room) bool {
+		return len(rooms) == 6 && rooms[0].HotelID == capturedID
+	})).Return(nil).Once()
+
 	res, err := service.CreateHotel(ctx, testHotelName, testHotelAddress, testHotelCity)
 	require.NoError(t, err)
 
@@ -60,13 +66,15 @@ func TestHotelService_CreateHotel_Success(t *testing.T) {
 	assert.Equal(t, testHotelName, res.Name)
 	assert.Equal(t, testHotelAddress, res.Address)
 	assert.Equal(t, testHotelCity, res.City)
+	assert.Len(t, res.Rooms, 6)
 	assert.True(t, fixedTime.Equal(res.CreatedAt))
 	assert.True(t, fixedTime.Equal(res.UpdatedAt))
 }
 
 func TestHotelService_CreateHotel_Error(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	ctx := t.Context()
 	repoErr := errors.New("repository connection failed")
 
@@ -85,7 +93,8 @@ func TestHotelService_CreateHotel_Error(t *testing.T) {
 
 func TestHotelService_CreateHotel_DomainInvariantFailure(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	ctx := t.Context()
 
 	res, err := service.CreateHotel(ctx, " ", testHotelAddress, testHotelCity)
@@ -93,14 +102,17 @@ func TestHotelService_CreateHotel_DomainInvariantFailure(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrInvalidHotel)
 	assert.Equal(t, uuid.Nil, res.ID)
 }
+
 func TestHotelService_FindHotels_Success(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	ctx := t.Context()
 
+	hotelID := uuid.New()
 	expectedHotels := []domain.Hotel{
 		{
-			ID:      uuid.New(),
+			ID:      hotelID,
 			Name:    testHotelName,
 			Address: testHotelAddress,
 			City:    testHotelCity,
@@ -108,15 +120,20 @@ func TestHotelService_FindHotels_Success(t *testing.T) {
 	}
 
 	mockRepo.EXPECT().SearchByName(ctx, "Budapest").Return(expectedHotels, nil).Once()
+	mockRoomRepo.EXPECT().GetByHotelID(ctx, hotelID).Return([]domain.Room{
+		{ID: uuid.New(), HotelID: hotelID, RoomNumber: "101", RoomType: domain.RoomTypeSingle, Capacity: 1},
+	}, nil).Once()
 
 	res, err := service.FindHotels(ctx, "Budapest")
 	require.NoError(t, err)
-	assert.Equal(t, expectedHotels, res)
+	assert.Len(t, res, 1)
+	assert.Len(t, res[0].Rooms, 1)
 }
 
 func TestHotelService_FindHotels_Error(t *testing.T) {
 	mockRepo := domainmocks.NewMockHotelRepository(t)
-	service := usecase.NewHotelService(mockRepo)
+	mockRoomRepo := domainmocks.NewMockRoomRepository(t)
+	service := usecase.NewHotelService(mockRepo, mockRoomRepo)
 	ctx := t.Context()
 
 	repoErr := errors.New("search failed")

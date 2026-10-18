@@ -4,6 +4,8 @@
 package httpapi
 
 import (
+	uuid "github.com/google/uuid"
+	converter "github.com/netologist/hotel-booking/internal/adapter/httpapi/converter"
 	domain "github.com/netologist/hotel-booking/internal/domain"
 	openapi "github.com/netologist/hotel-booking/internal/gen/openapi"
 	"time"
@@ -14,8 +16,10 @@ func ToOpenAPIHotel(source domain.Hotel) openapi.Hotel {
 	openapiHotel.Address = source.Address
 	openapiHotel.City = source.City
 	openapiHotel.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
-	openapiHotel.Id = source.ID
+	openapiHotel.Id = uuidUUIDToUuidUUID(source.ID)
 	openapiHotel.Name = source.Name
+	openapiRoomList := ToOpenAPIRooms(source.Rooms)
+	openapiHotel.Rooms = &openapiRoomList
 	openapiHotel.UpdatedAt = timeTimeToTimeTime(source.UpdatedAt)
 	return openapiHotel
 }
@@ -29,6 +33,28 @@ func ToOpenAPIHotels(source []domain.Hotel) []openapi.Hotel {
 	}
 	return openapiHotelList
 }
+func ToOpenAPIRoom(source domain.Room) openapi.Room {
+	var openapiRoom openapi.Room
+	openapiRoom.Capacity = source.Capacity
+	openapiRoom.HotelId = uuidUUIDToUuidUUID(source.HotelID)
+	openapiRoom.Id = uuidUUIDToUuidUUID(source.ID)
+	openapiRoom.RoomNumber = source.RoomNumber
+	openapiRoom.RoomType = converter.ToOpenAPIRoomType(source.RoomType)
+	return openapiRoom
+}
+func ToOpenAPIRooms(source []domain.Room) []openapi.Room {
+	var openapiRoomList []openapi.Room
+	if source != nil {
+		openapiRoomList = make([]openapi.Room, len(source))
+		for i := 0; i < len(source); i++ {
+			openapiRoomList[i] = ToOpenAPIRoom(source[i])
+		}
+	}
+	return openapiRoomList
+}
 func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
+}
+func uuidUUIDToUuidUUID(source uuid.UUID) uuid.UUID {
 	return source
 }

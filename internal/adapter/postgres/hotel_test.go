@@ -43,6 +43,31 @@ func (m *mockQuerier) SearchHotelsByName(ctx context.Context, name string) ([]sq
 	}
 	return nil, args.Error(1)
 }
+
+func (m *mockQuerier) CreateRoom(ctx context.Context, arg sqlc.CreateRoomParams) (sqlc.Room, error) {
+	args := m.Called(ctx, arg)
+	if row, ok := args.Get(0).(sqlc.Room); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.Room{}, args.Error(1)
+}
+
+func (m *mockQuerier) GetRoomByID(ctx context.Context, id uuid.UUID) (sqlc.Room, error) {
+	args := m.Called(ctx, id)
+	if row, ok := args.Get(0).(sqlc.Room); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.Room{}, args.Error(1)
+}
+
+func (m *mockQuerier) GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]sqlc.Room, error) {
+	args := m.Called(ctx, hotelID)
+	if rows, ok := args.Get(0).([]sqlc.Room); ok {
+		return rows, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)
 	require.NotNil(t, repo)

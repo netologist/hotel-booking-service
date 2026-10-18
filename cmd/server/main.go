@@ -74,7 +74,8 @@ func runServerWithHealth( //nolint:funlen // server assembly + graceful shutdown
 	healthHandler *handler.HealthCheck,
 ) error {
 	hotelRepo := postgres.NewHotelRepository(pool)
-	hotelService := usecase.NewHotelService(hotelRepo)
+	roomRepo := postgres.NewRoomRepository(pool)
+	hotelService := usecase.NewHotelService(hotelRepo, roomRepo)
 	handlers := httpapi.NewServer(
 		healthHandler,
 		handler.NewHotelHandler(hotelService),

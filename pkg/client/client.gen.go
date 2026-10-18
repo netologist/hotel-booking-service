@@ -18,6 +18,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for RoomType.
+const (
+	Deluxe RoomType = "deluxe"
+	Double RoomType = "double"
+	Single RoomType = "single"
+)
+
+// Valid indicates whether the value is a known member of the RoomType enum.
+func (e RoomType) Valid() bool {
+	switch e {
+	case Deluxe:
+		return true
+	case Double:
+		return true
+	case Single:
+		return true
+	default:
+		return false
+	}
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -42,6 +63,7 @@ type Hotel struct {
 
 	// Name Example: Grand Budapest Hotel
 	Name      string    `json:"name"`
+	Rooms     *[]Room   `json:"rooms,omitempty"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -85,6 +107,23 @@ type Problem struct {
 	// Example: about:blank
 	Type string `json:"type"`
 }
+
+// Room defines model for Room.
+type Room struct {
+	// Capacity Example: 1
+	Capacity int                `json:"capacity"`
+	HotelId  openapi_types.UUID `json:"hotel_id"`
+	Id       openapi_types.UUID `json:"id"`
+
+	// RoomNumber Example: 101
+	RoomNumber string `json:"room_number"`
+
+	// RoomType Example: single
+	RoomType RoomType `json:"room_type"`
+}
+
+// RoomType Example: single
+type RoomType string
 
 // ValidationError defines model for ValidationError.
 type ValidationError struct {

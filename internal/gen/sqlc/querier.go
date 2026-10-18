@@ -6,10 +6,15 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateHotel(ctx context.Context, arg CreateHotelParams) (Hotel, error)
+	CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error)
+	GetRoomByID(ctx context.Context, id uuid.UUID) (Room, error)
+	GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]Room, error)
 	SearchHotelsByName(ctx context.Context, name string) ([]Hotel, error)
 }
 

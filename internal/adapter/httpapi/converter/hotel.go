@@ -11,10 +11,21 @@ import (
 // goverter:output:format function
 // goverter:matchIgnoreCase
 // goverter:skipCopySameType
+// goverter:extend ToOpenAPIRoomType
 type HotelConverter interface {
 	// ToOpenAPIHotel converts a domain Hotel to an OpenAPI Hotel response.
 	ToOpenAPIHotel(source domain.Hotel) openapi.Hotel
 
 	// ToOpenAPIHotels converts a slice of domain Hotels to an OpenAPI Hotel response slice.
 	ToOpenAPIHotels(source []domain.Hotel) []openapi.Hotel
+
+	// ToOpenAPIRoom converts a domain Room to an OpenAPI Room response.
+	ToOpenAPIRoom(source domain.Room) openapi.Room
+
+	// ToOpenAPIRooms converts a slice of domain Rooms to an OpenAPI Room response slice.
+	ToOpenAPIRooms(source []domain.Room) []openapi.Room
+}
+
+func ToOpenAPIRoomType(source domain.RoomType) openapi.RoomType {
+	return openapi.RoomType(source)
 }

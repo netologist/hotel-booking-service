@@ -145,6 +145,37 @@ components:
           description: List of invalid fields for validation problems
           items:
             $ref: '#/components/schemas/ValidationError'
+    RoomType:
+      type: string
+      enum:
+        - single
+        - double
+        - deluxe
+      example: single
+
+    Room:
+      type: object
+      required:
+        - id
+        - hotel_id
+        - room_number
+        - room_type
+        - capacity
+      properties:
+        id:
+          type: string
+          format: uuid
+        hotel_id:
+          type: string
+          format: uuid
+        room_number:
+          type: string
+          example: "101"
+        room_type:
+          $ref: '#/components/schemas/RoomType'
+        capacity:
+          type: integer
+          example: 1
 
     Hotel:
       type: object
@@ -168,6 +199,10 @@ components:
         city:
           type: string
           example: "Lutz"
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
         created_at:
           type: string
           format: date-time

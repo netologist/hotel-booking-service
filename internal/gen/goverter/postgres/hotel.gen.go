@@ -4,6 +4,8 @@
 package postgres
 
 import (
+	uuid "github.com/google/uuid"
+	converter "github.com/netologist/hotel-booking/internal/adapter/postgres/converter"
 	domain "github.com/netologist/hotel-booking/internal/domain"
 	sqlc "github.com/netologist/hotel-booking/internal/gen/sqlc"
 	"time"
@@ -17,9 +19,18 @@ func ToCreateHotelParams(source domain.Hotel) sqlc.CreateHotelParams {
 	sqlcCreateHotelParams.City = source.City
 	return sqlcCreateHotelParams
 }
+func ToCreateRoomParams(source domain.Room) sqlc.CreateRoomParams {
+	var sqlcCreateRoomParams sqlc.CreateRoomParams
+	sqlcCreateRoomParams.ID = uuidUUIDToUuidUUID(source.ID)
+	sqlcCreateRoomParams.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	sqlcCreateRoomParams.RoomNumber = source.RoomNumber
+	sqlcCreateRoomParams.RoomType = string(source.RoomType)
+	sqlcCreateRoomParams.Capacity = converter.IntToInt32(source.Capacity)
+	return sqlcCreateRoomParams
+}
 func ToDomainHotel(source sqlc.Hotel) domain.Hotel {
 	var domainHotel domain.Hotel
-	domainHotel.ID = source.ID
+	domainHotel.ID = uuidUUIDToUuidUUID(source.ID)
 	domainHotel.Name = source.Name
 	domainHotel.Address = source.Address
 	domainHotel.City = source.City
@@ -37,6 +48,30 @@ func ToDomainHotels(source []sqlc.Hotel) []domain.Hotel {
 	}
 	return domainHotelList
 }
+func ToDomainRoom(source sqlc.Room) domain.Room {
+	var domainRoom domain.Room
+	domainRoom.ID = uuidUUIDToUuidUUID(source.ID)
+	domainRoom.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	domainRoom.RoomNumber = source.RoomNumber
+	domainRoom.RoomType = domain.RoomType(source.RoomType)
+	domainRoom.Capacity = converter.Int32ToInt(source.Capacity)
+	domainRoom.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
+	domainRoom.UpdatedAt = timeTimeToTimeTime(source.UpdatedAt)
+	return domainRoom
+}
+func ToDomainRooms(source []sqlc.Room) []domain.Room {
+	var domainRoomList []domain.Room
+	if source != nil {
+		domainRoomList = make([]domain.Room, len(source))
+		for i := 0; i < len(source); i++ {
+			domainRoomList[i] = ToDomainRoom(source[i])
+		}
+	}
+	return domainRoomList
+}
 func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
+}
+func uuidUUIDToUuidUUID(source uuid.UUID) uuid.UUID {
 	return source
 }

@@ -18,3 +18,13 @@ type Hotel struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type Room struct {
+	ID         uuid.UUID
+	HotelID    uuid.UUID
+	RoomNumber string
+	RoomType   string
+	Capacity   int32
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}

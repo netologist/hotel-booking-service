@@ -25,6 +25,7 @@ type Hotel struct {
 	Name      string
 	Address   string
 	City      string
+	Rooms     []Room
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
