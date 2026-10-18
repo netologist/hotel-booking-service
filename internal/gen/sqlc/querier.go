@@ -11,10 +11,14 @@ import (
 )
 
 type Querier interface {
+	CheckRoomBookingConflict(ctx context.Context, arg CheckRoomBookingConflictParams) (int64, error)
+	CreateBooking(ctx context.Context, arg CreateBookingParams) (Booking, error)
 	CreateHotel(ctx context.Context, arg CreateHotelParams) (Hotel, error)
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error)
 	FindAvailableRooms(ctx context.Context, arg FindAvailableRoomsParams) ([]FindAvailableRoomsRow, error)
+	GetBookingByReference(ctx context.Context, reference string) (Booking, error)
 	GetRoomByID(ctx context.Context, id uuid.UUID) (Room, error)
+	GetRoomForUpdate(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]Room, error)
 	SearchHotelsByName(ctx context.Context, name string) ([]Hotel, error)
 	TruncateAll(ctx context.Context) error

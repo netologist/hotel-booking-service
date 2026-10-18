@@ -31,6 +31,20 @@ func ToOpenAPIAvailableRooms(source []domain.AvailableRoom) []openapi.AvailableR
 	}
 	return openapiAvailableRoomList
 }
+func ToOpenAPIBooking(source domain.Booking) openapi.Booking {
+	var openapiBooking openapi.Booking
+	openapiBooking.CheckInDate = converter.TimeToOpenAPIDate(source.CheckInDate)
+	openapiBooking.CheckOutDate = converter.TimeToOpenAPIDate(source.CheckOutDate)
+	openapiBooking.CreatedAt = source.CreatedAt
+	openapiBooking.GuestEmail = source.GuestEmail
+	openapiBooking.GuestName = source.GuestName
+	openapiBooking.HotelId = uuidUUIDToUuidUUID(source.HotelID)
+	openapiBooking.Id = uuidUUIDToUuidUUID(source.ID)
+	openapiBooking.NumberOfGuests = source.NumberOfGuests
+	openapiBooking.Reference = source.Reference
+	openapiBooking.RoomId = uuidUUIDToUuidUUID(source.RoomID)
+	return openapiBooking
+}
 func ToOpenAPIHotel(source domain.Hotel) openapi.Hotel {
 	var openapiHotel openapi.Hotel
 	openapiHotel.Address = source.Address

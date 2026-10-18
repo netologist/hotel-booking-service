@@ -44,6 +44,11 @@ func Conflict(detail, instance, code string) openapi.Problem {
 	return New(http.StatusConflict, http.StatusText(http.StatusConflict), detail, instance, code, nil)
 }
 
+// NotFound creates a 404 Problem.
+func NotFound(detail, instance, code string) openapi.Problem {
+	return New(http.StatusNotFound, http.StatusText(http.StatusNotFound), detail, instance, code, nil)
+}
+
 // InternalServerError creates a 500 Problem.
 func InternalServerError(detail, instance string) openapi.Problem {
 	return New(

@@ -144,6 +144,28 @@ func (q *Queries) GetRoomByID(ctx context.Context, id uuid.UUID) (Room, error) {
 	return i, err
 }
 
+const getRoomForUpdate = `-- name: GetRoomForUpdate :one
+SELECT id, hotel_id, room_number, room_type, capacity, created_at, updated_at
+FROM rooms
+WHERE id = $1
+FOR UPDATE
+`
+
+func (q *Queries) GetRoomForUpdate(ctx context.Context, id uuid.UUID) (Room, error) {
+	row := q.db.QueryRow(ctx, getRoomForUpdate, id)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.HotelID,
+		&i.RoomNumber,
+		&i.RoomType,
+		&i.Capacity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRoomsByHotelID = `-- name: GetRoomsByHotelID :many
 SELECT id, hotel_id, room_number, room_type, capacity, created_at, updated_at
 FROM rooms

@@ -10,6 +10,7 @@ type Server struct {
 	*handler.HotelHandler
 	*handler.AdminHandler
 	*handler.RoomHandler
+	*handler.BookingHandler
 }
 
 func NewServer(
@@ -17,12 +18,14 @@ func NewServer(
 	hotelHandler *handler.HotelHandler,
 	adminHandler *handler.AdminHandler,
 	roomHandler *handler.RoomHandler,
+	bookingHandler *handler.BookingHandler,
 ) *Server {
 	return &Server{
-		HealthCheck:  healthCheck,
-		HotelHandler: hotelHandler,
-		AdminHandler: adminHandler,
-		RoomHandler:  roomHandler,
+		HealthCheck:    healthCheck,
+		HotelHandler:   hotelHandler,
+		AdminHandler:   adminHandler,
+		RoomHandler:    roomHandler,
+		BookingHandler: bookingHandler,
 	}
 }
 

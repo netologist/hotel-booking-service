@@ -18,11 +18,13 @@ func SetupTestRouterWithMock(t *testing.T) (http.Handler, *usecasemocks.MockHote
 	mockHotelService := usecasemocks.NewMockHotelService(t)
 	mockAdminService := usecasemocks.NewMockAdminService(t)
 	mockRoomService := usecasemocks.NewMockRoomService(t)
+	mockBookingService := usecasemocks.NewMockBookingService(t)
 	server := httpapi.NewServer(
 		handler.NewHealthCheck(),
 		handler.NewHotelHandler(mockHotelService),
 		handler.NewAdminHandler(mockAdminService),
 		handler.NewRoomHandler(mockRoomService),
+		handler.NewBookingHandler(mockBookingService),
 	)
 	return httpapi.NewRouter(server), mockHotelService
 }
@@ -31,11 +33,13 @@ func SetupTestRouterWithHealth(t *testing.T, health *handler.HealthCheck) http.H
 	mockHotelService := usecasemocks.NewMockHotelService(t)
 	mockAdminService := usecasemocks.NewMockAdminService(t)
 	mockRoomService := usecasemocks.NewMockRoomService(t)
+	mockBookingService := usecasemocks.NewMockBookingService(t)
 	server := httpapi.NewServer(
 		health,
 		handler.NewHotelHandler(mockHotelService),
 		handler.NewAdminHandler(mockAdminService),
 		handler.NewRoomHandler(mockRoomService),
+		handler.NewBookingHandler(mockBookingService),
 	)
 	return httpapi.NewRouter(server)
 }

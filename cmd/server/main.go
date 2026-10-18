@@ -76,14 +76,19 @@ func runServerWithHealth( //nolint:funlen // server assembly + graceful shutdown
 	hotelRepo := postgres.NewHotelRepository(pool)
 	roomRepo := postgres.NewRoomRepository(pool)
 	adminRepo := postgres.NewAdminRepository(pool)
+	bookingRepo := postgres.NewBookingRepository(pool)
+	const emailDelay = 2 * time.Second
+	notifier := usecase.NewAsyncEmailNotifier(emailDelay)
 	hotelService := usecase.NewHotelService(hotelRepo, roomRepo)
 	adminService := usecase.NewAdminService(hotelRepo, roomRepo, adminRepo)
 	roomService := usecase.NewRoomService(roomRepo)
+	bookingService := usecase.NewBookingService(roomRepo, bookingRepo, notifier)
 	handlers := httpapi.NewServer(
 		healthHandler,
 		handler.NewHotelHandler(hotelService),
 		handler.NewAdminHandler(adminService),
 		handler.NewRoomHandler(roomService),
+		handler.NewBookingHandler(bookingService),
 	)
 	router := httpapi.NewRouterWithOptions(handlers, httpapi.RouterOptions{
 		CORSAllowedOrigins: cfg.CORSAllowedOrigins,

@@ -11,9 +11,22 @@ import (
 	"time"
 )
 
+func ToCreateBookingParams(source domain.Booking) sqlc.CreateBookingParams {
+	var sqlcCreateBookingParams sqlc.CreateBookingParams
+	sqlcCreateBookingParams.ID = uuidUUIDToUuidUUID(source.ID)
+	sqlcCreateBookingParams.Reference = source.Reference
+	sqlcCreateBookingParams.RoomID = uuidUUIDToUuidUUID(source.RoomID)
+	sqlcCreateBookingParams.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	sqlcCreateBookingParams.GuestName = source.GuestName
+	sqlcCreateBookingParams.GuestEmail = source.GuestEmail
+	sqlcCreateBookingParams.CheckInDate = converter.TimeToDate(source.CheckInDate)
+	sqlcCreateBookingParams.CheckOutDate = converter.TimeToDate(source.CheckOutDate)
+	sqlcCreateBookingParams.NumberOfGuests = converter.IntToInt32(source.NumberOfGuests)
+	return sqlcCreateBookingParams
+}
 func ToCreateHotelParams(source domain.Hotel) sqlc.CreateHotelParams {
 	var sqlcCreateHotelParams sqlc.CreateHotelParams
-	sqlcCreateHotelParams.ID = source.ID
+	sqlcCreateHotelParams.ID = uuidUUIDToUuidUUID(source.ID)
 	sqlcCreateHotelParams.Name = source.Name
 	sqlcCreateHotelParams.Address = source.Address
 	sqlcCreateHotelParams.City = source.City
@@ -49,6 +62,20 @@ func ToDomainAvailableRooms(source []sqlc.FindAvailableRoomsRow) []domain.Availa
 		}
 	}
 	return domainAvailableRoomList
+}
+func ToDomainBooking(source sqlc.Booking) domain.Booking {
+	var domainBooking domain.Booking
+	domainBooking.ID = uuidUUIDToUuidUUID(source.ID)
+	domainBooking.Reference = source.Reference
+	domainBooking.RoomID = uuidUUIDToUuidUUID(source.RoomID)
+	domainBooking.HotelID = uuidUUIDToUuidUUID(source.HotelID)
+	domainBooking.GuestName = source.GuestName
+	domainBooking.GuestEmail = source.GuestEmail
+	domainBooking.CheckInDate = converter.DateToTime(source.CheckInDate)
+	domainBooking.CheckOutDate = converter.DateToTime(source.CheckOutDate)
+	domainBooking.NumberOfGuests = converter.Int32ToInt(source.NumberOfGuests)
+	domainBooking.CreatedAt = timeTimeToTimeTime(source.CreatedAt)
+	return domainBooking
 }
 func ToDomainHotel(source sqlc.Hotel) domain.Hotel {
 	var domainHotel domain.Hotel

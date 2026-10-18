@@ -60,6 +60,14 @@ func (m *mockQuerier) GetRoomByID(ctx context.Context, id uuid.UUID) (sqlc.Room,
 	return sqlc.Room{}, args.Error(1)
 }
 
+func (m *mockQuerier) GetRoomForUpdate(ctx context.Context, id uuid.UUID) (sqlc.Room, error) {
+	args := m.Called(ctx, id)
+	if row, ok := args.Get(0).(sqlc.Room); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.Room{}, args.Error(1)
+}
+
 func (m *mockQuerier) GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]sqlc.Room, error) {
 	args := m.Called(ctx, hotelID)
 	if rows, ok := args.Get(0).([]sqlc.Room); ok {
@@ -82,6 +90,31 @@ func (m *mockQuerier) FindAvailableRooms(
 		return rows, args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+func (m *mockQuerier) CreateBooking(ctx context.Context, arg sqlc.CreateBookingParams) (sqlc.Booking, error) {
+	args := m.Called(ctx, arg)
+	if row, ok := args.Get(0).(sqlc.Booking); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.Booking{}, args.Error(1)
+}
+
+func (m *mockQuerier) CheckRoomBookingConflict(
+	ctx context.Context,
+	arg sqlc.CheckRoomBookingConflictParams,
+) (int64, error) {
+	args := m.Called(ctx, arg)
+	val, _ := args.Get(0).(int64)
+	return val, args.Error(1)
+}
+
+func (m *mockQuerier) GetBookingByReference(ctx context.Context, reference string) (sqlc.Booking, error) {
+	args := m.Called(ctx, reference)
+	if row, ok := args.Get(0).(sqlc.Booking); ok {
+		return row, args.Error(1)
+	}
+	return sqlc.Booking{}, args.Error(1)
 }
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)

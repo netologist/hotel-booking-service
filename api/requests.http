@@ -118,3 +118,69 @@ Accept: application/problem+json
 # Expected:
 # HTTP 400 Bad Request
 # response.body.code == "INVALID_QUERY_PARAMETER"
+
+### ==============================================================================
+### Book a Room
+### ==============================================================================
+
+# @name BookRoom
+POST {{baseUrl}}/api/v1/bookings
+Content-Type: {{contentType}}
+Accept: application/json
+
+{
+  "room_id": "{{createdHotelId}}",
+  "check_in_date": "2026-11-01",
+  "check_out_date": "2026-11-03",
+  "number_of_guests": 2,
+  "guest_name": "Alice Wonderland",
+  "guest_email": "alice@example.com"
+}
+
+###
+# Expected:
+# HTTP 201 Created
+# response.body.reference starts with "BK-"
+
+### Capture booking reference
+@bookingReference = {{BookRoom.response.body.reference}}
+
+###
+# @name BookRoomDoubleBookingConflict
+POST {{baseUrl}}/api/v1/bookings
+Content-Type: {{contentType}}
+Accept: application/problem+json
+
+{
+  "room_id": "{{createdHotelId}}",
+  "check_in_date": "2026-11-02",
+  "check_out_date": "2026-11-04",
+  "number_of_guests": 2,
+  "guest_name": "Bob Overlap",
+  "guest_email": "bob@example.com"
+}
+
+###
+# Expected:
+# HTTP 409 Conflict
+# response.body.code == "ROOM_ALREADY_BOOKED"
+
+###
+# @name BookRoomCapacityExceeded
+POST {{baseUrl}}/api/v1/bookings
+Content-Type: {{contentType}}
+Accept: application/problem+json
+
+{
+  "room_id": "{{createdHotelId}}",
+  "check_in_date": "2026-11-01",
+  "check_out_date": "2026-11-03",
+  "number_of_guests": 10,
+  "guest_name": "Too Many People",
+  "guest_email": "crowd@example.com"
+}
+
+###
+# Expected:
+# HTTP 400 Bad Request
+# response.body.code == "INVALID_BOOKING_REQUEST"

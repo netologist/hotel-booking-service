@@ -56,6 +56,50 @@ type AvailableRoom struct {
 	RoomType RoomType `json:"room_type"`
 }
 
+// BookRoomRequest defines model for BookRoomRequest.
+type BookRoomRequest struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail openapi_types.Email `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string `json:"guest_name"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int                `json:"number_of_guests"`
+	RoomId         openapi_types.UUID `json:"room_id"`
+}
+
+// Booking defines model for Booking.
+type Booking struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+	CreatedAt    time.Time          `json:"created_at"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail string `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string             `json:"guest_name"`
+	HotelId   openapi_types.UUID `json:"hotel_id"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int `json:"number_of_guests"`
+
+	// Reference Example: BK-20261018-AB12CD34
+	Reference string             `json:"reference"`
+	RoomId    openapi_types.UUID `json:"room_id"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -182,6 +226,9 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
+// NotFound RFC 9457 Problem Details object
+type NotFound = Problem
+
 // FindHotelsParams defines parameters for FindHotels.
 type FindHotelsParams struct {
 	Name string `form:"name" json:"name"`
@@ -201,6 +248,9 @@ type FindAvailableRoomsParams struct {
 	// HotelId Optional hotel ID filter
 	HotelId *openapi_types.UUID `form:"hotel_id,omitempty" json:"hotel_id,omitempty"`
 }
+
+// BookRoomJSONRequestBody defines body for BookRoom for application/json ContentType.
+type BookRoomJSONRequestBody = BookRoomRequest
 
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
@@ -279,6 +329,20 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// BookRoomWithBody Book a room
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+	BookRoomWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BookRoom Book a room
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+	BookRoom(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	//
 	// Corresponds with GET /api/v1/hotels (the `FindHotels` operationId).
@@ -317,6 +381,40 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /healthz (the `GetHealth` operationId).
 	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// BookRoomWithBody Book a room
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+func (c *Client) BookRoomWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBookRoomRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BookRoom Book a room
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+func (c *Client) BookRoom(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBookRoomRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // FindHotels Find hotels by name (case-insensitive, partial match)
@@ -426,6 +524,46 @@ func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewBookRoomRequest calls the generic BookRoom builder with application/json body
+func NewBookRoomRequest(server string, body BookRoomJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBookRoomRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewBookRoomRequestWithBody constructs an http.Request for the BookRoom method, with any body, and a specified content type
+func NewBookRoomRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/bookings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewFindHotelsRequest constructs an http.Request for the FindHotels method
@@ -721,6 +859,20 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// BookRoomWithBodyWithResponse Book a room
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+	BookRoomWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BookRoomResponse, error)
+
+	// BookRoomWithResponse Book a room
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+	BookRoomWithResponse(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*BookRoomResponse, error)
+
 	// FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -769,6 +921,75 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /healthz (the `GetHealth` operationId).
 	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
+}
+
+type BookRoomResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Booking
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *BadRequest
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *NotFound
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Conflict
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *InternalServerError
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r BookRoomResponse) GetJSON201() *Booking {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r BookRoomResponse) GetApplicationproblemJSON400() *BadRequest {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r BookRoomResponse) GetApplicationproblemJSON404() *NotFound {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r BookRoomResponse) GetApplicationproblemJSON409() *Conflict {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r BookRoomResponse) GetApplicationproblemJSON500() *InternalServerError {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r BookRoomResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BookRoomResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BookRoomResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BookRoomResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type FindHotelsResponse struct {
@@ -1096,6 +1317,32 @@ func (r GetHealthResponse) ContentType() string {
 	return ""
 }
 
+// BookRoomWithBodyWithResponse Book a room
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+func (c *ClientWithResponses) BookRoomWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BookRoomResponse, error) {
+	rsp, err := c.BookRoomWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBookRoomResponse(rsp)
+}
+
+// BookRoomWithResponse Book a room
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/bookings (the `BookRoom` operationId).
+func (c *ClientWithResponses) BookRoomWithResponse(ctx context.Context, body BookRoomJSONRequestBody, reqEditors ...RequestEditorFn) (*BookRoomResponse, error) {
+	rsp, err := c.BookRoom(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBookRoomResponse(rsp)
+}
+
 // FindHotelsWithResponse Find hotels by name (case-insensitive, partial match)
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1185,6 +1432,60 @@ func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEdit
 		return nil, err
 	}
 	return ParseGetHealthResponse(rsp)
+}
+
+// ParseBookRoomResponse parses an HTTP response from a BookRoomWithResponse call
+func ParseBookRoomResponse(rsp *http.Response) (*BookRoomResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BookRoomResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Booking
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseFindHotelsResponse parses an HTTP response from a FindHotelsWithResponse call

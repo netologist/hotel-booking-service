@@ -133,6 +133,31 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/bookings:
+    post:
+      summary: Book a room
+      operationId: bookRoom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRoomRequest'
+      responses:
+        '201':
+          description: Room booked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/reset:
     post:
       summary: Reset database removing all test data
@@ -156,6 +181,12 @@ components:
             $ref: '#/components/schemas/Problem'
     Conflict:
       description: Conflict - Resource already exists or invariant conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Not Found - The requested resource does not exist
       content:
         application/problem+json:
           schema:
@@ -367,3 +398,86 @@ components:
         message:
           type: string
           example: "Database reset successfully"
+
+    BookRoomRequest:
+      type: object
+      required:
+        - room_id
+        - check_in_date
+        - check_out_date
+        - number_of_guests
+        - guest_name
+        - guest_email
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        check_in_date:
+          type: string
+          format: date
+          example: "2026-11-01"
+        check_out_date:
+          type: string
+          format: date
+          example: "2026-11-03"
+        number_of_guests:
+          type: integer
+          minimum: 1
+          example: 2
+        guest_name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "John Doe"
+        guest_email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "john@example.com"
+
+    Booking:
+      type: object
+      required:
+        - id
+        - reference
+        - room_id
+        - hotel_id
+        - guest_name
+        - guest_email
+        - check_in_date
+        - check_out_date
+        - number_of_guests
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          example: "BK-20261018-AB12CD34"
+        room_id:
+          type: string
+          format: uuid
+        hotel_id:
+          type: string
+          format: uuid
+        guest_name:
+          type: string
+          example: "John Doe"
+        guest_email:
+          type: string
+          example: "john@example.com"
+        check_in_date:
+          type: string
+          format: date
+          example: "2026-11-01"
+        check_out_date:
+          type: string
+          format: date
+          example: "2026-11-03"
+        number_of_guests:
+          type: integer
+          example: 2
+        created_at:
+          type: string
+          format: date-time

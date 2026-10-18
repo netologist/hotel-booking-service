@@ -61,6 +61,50 @@ type AvailableRoom struct {
 	RoomType RoomType `json:"room_type"`
 }
 
+// BookRoomRequest defines model for BookRoomRequest.
+type BookRoomRequest struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail openapi_types.Email `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string `json:"guest_name"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int                `json:"number_of_guests"`
+	RoomId         openapi_types.UUID `json:"room_id"`
+}
+
+// Booking defines model for Booking.
+type Booking struct {
+	// CheckInDate Example: 2026-11-01
+	CheckInDate openapi_types.Date `json:"check_in_date"`
+
+	// CheckOutDate Example: 2026-11-03
+	CheckOutDate openapi_types.Date `json:"check_out_date"`
+	CreatedAt    time.Time          `json:"created_at"`
+
+	// GuestEmail Example: john@example.com
+	GuestEmail string `json:"guest_email"`
+
+	// GuestName Example: John Doe
+	GuestName string             `json:"guest_name"`
+	HotelId   openapi_types.UUID `json:"hotel_id"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// NumberOfGuests Example: 2
+	NumberOfGuests int `json:"number_of_guests"`
+
+	// Reference Example: BK-20261018-AB12CD34
+	Reference string             `json:"reference"`
+	RoomId    openapi_types.UUID `json:"room_id"`
+}
+
 // CreateHotelRequest defines model for CreateHotelRequest.
 type CreateHotelRequest struct {
 	// Address Example: 100 Alpine Way
@@ -187,6 +231,9 @@ type Conflict = Problem
 // InternalServerError RFC 9457 Problem Details object
 type InternalServerError = Problem
 
+// NotFound RFC 9457 Problem Details object
+type NotFound = Problem
+
 // FindHotelsParams defines parameters for FindHotels.
 type FindHotelsParams struct {
 	Name string `form:"name" json:"name"`
@@ -207,11 +254,17 @@ type FindAvailableRoomsParams struct {
 	HotelId *openapi_types.UUID `form:"hotel_id,omitempty" json:"hotel_id,omitempty"`
 }
 
+// BookRoomJSONRequestBody defines body for BookRoom for application/json ContentType.
+type BookRoomJSONRequestBody = BookRoomRequest
+
 // CreateHotelJSONRequestBody defines body for CreateHotel for application/json ContentType.
 type CreateHotelJSONRequestBody = CreateHotelRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// BookRoom Book a room
+	// (POST /api/v1/bookings)
+	BookRoom(w http.ResponseWriter, r *http.Request)
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	// (GET /api/v1/hotels)
 	FindHotels(w http.ResponseWriter, r *http.Request, params FindHotelsParams)
@@ -235,6 +288,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// BookRoom Book a room
+// (POST /api/v1/bookings)
+func (_ Unimplemented) BookRoom(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // FindHotels Find hotels by name (case-insensitive, partial match)
 // (GET /api/v1/hotels)
@@ -280,6 +339,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// BookRoom operation middleware
+func (siw *ServerInterfaceWrapper) BookRoom(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BookRoom(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // FindHotels operation middleware
 func (siw *ServerInterfaceWrapper) FindHotels(w http.ResponseWriter, r *http.Request) {
@@ -571,6 +644,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v1/rooms/available", wrapper.FindAvailableRooms)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/bookings", wrapper.BookRoom)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/reset", wrapper.ResetDatabase)
 	})
 
@@ -582,6 +658,94 @@ type BadRequestApplicationProblemPlusJSONResponse Problem
 type ConflictApplicationProblemPlusJSONResponse Problem
 
 type InternalServerErrorApplicationProblemPlusJSONResponse Problem
+
+type NotFoundApplicationProblemPlusJSONResponse Problem
+
+type BookRoomRequestObject struct {
+	Body *BookRoomJSONRequestBody
+}
+
+type BookRoomResponseObject interface {
+	VisitBookRoomResponse(w http.ResponseWriter) error
+}
+
+type BookRoom201JSONResponse Booking
+
+func (response BookRoom201JSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookRoom400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response BookRoom400ApplicationProblemPlusJSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookRoom404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response BookRoom404ApplicationProblemPlusJSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookRoom409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response BookRoom409ApplicationProblemPlusJSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookRoom500ApplicationProblemPlusJSONResponse struct {
+	InternalServerErrorApplicationProblemPlusJSONResponse
+}
+
+func (response BookRoom500ApplicationProblemPlusJSONResponse) VisitBookRoomResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type FindHotelsRequestObject struct {
 	Params FindHotelsParams
@@ -866,6 +1030,9 @@ func (response GetHealth500ApplicationProblemPlusJSONResponse) VisitGetHealthRes
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// BookRoom Book a room
+	// (POST /api/v1/bookings)
+	BookRoom(ctx context.Context, request BookRoomRequestObject) (BookRoomResponseObject, error)
 	// FindHotels Find hotels by name (case-insensitive, partial match)
 	// (GET /api/v1/hotels)
 	FindHotels(ctx context.Context, request FindHotelsRequestObject) (FindHotelsResponseObject, error)
@@ -923,6 +1090,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// BookRoom operation middleware
+func (sh *strictHandler) BookRoom(w http.ResponseWriter, r *http.Request) {
+	var request BookRoomRequestObject
+
+	var body BookRoomJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BookRoom(ctx, request.(BookRoomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BookRoom")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BookRoomResponseObject); ok {
+		if err := validResponse.VisitBookRoomResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // FindHotels operation middleware
@@ -1085,37 +1283,41 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"sHt5cRWw/u8A",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

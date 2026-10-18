@@ -14,6 +14,12 @@ SELECT id, hotel_id, room_number, room_type, capacity, created_at, updated_at
 FROM rooms
 WHERE id = $1;
 
+-- name: GetRoomForUpdate :one
+SELECT id, hotel_id, room_number, room_type, capacity, created_at, updated_at
+FROM rooms
+WHERE id = $1
+FOR UPDATE;
+
 -- name: FindAvailableRooms :many
 SELECT 
     r.id, 
