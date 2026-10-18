@@ -16,6 +16,7 @@ type Querier interface {
 	GetRoomByID(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) ([]Room, error)
 	SearchHotelsByName(ctx context.Context, name string) ([]Hotel, error)
+	TruncateAll(ctx context.Context) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -68,6 +68,10 @@ func (m *mockQuerier) GetRoomsByHotelID(ctx context.Context, hotelID uuid.UUID) 
 	return nil, args.Error(1)
 }
 
+func (m *mockQuerier) TruncateAll(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
 func TestNewHotelRepository(t *testing.T) {
 	repo := NewHotelRepository(nil)
 	require.NotNil(t, repo)

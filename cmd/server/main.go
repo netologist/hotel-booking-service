@@ -75,10 +75,13 @@ func runServerWithHealth( //nolint:funlen // server assembly + graceful shutdown
 ) error {
 	hotelRepo := postgres.NewHotelRepository(pool)
 	roomRepo := postgres.NewRoomRepository(pool)
+	adminRepo := postgres.NewAdminRepository(pool)
 	hotelService := usecase.NewHotelService(hotelRepo, roomRepo)
+	adminService := usecase.NewAdminService(hotelRepo, roomRepo, adminRepo)
 	handlers := httpapi.NewServer(
 		healthHandler,
 		handler.NewHotelHandler(hotelService),
+		handler.NewAdminHandler(adminService),
 	)
 	router := httpapi.NewRouterWithOptions(handlers, httpapi.RouterOptions{
 		CORSAllowedOrigins: cfg.CORSAllowedOrigins,

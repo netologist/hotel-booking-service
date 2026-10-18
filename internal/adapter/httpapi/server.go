@@ -8,15 +8,18 @@ import (
 type Server struct {
 	*handler.HealthCheck
 	*handler.HotelHandler
+	*handler.AdminHandler
 }
 
 func NewServer(
 	healthCheck *handler.HealthCheck,
 	hotelHandler *handler.HotelHandler,
+	adminHandler *handler.AdminHandler,
 ) *Server {
 	return &Server{
 		HealthCheck:  healthCheck,
 		HotelHandler: hotelHandler,
+		AdminHandler: adminHandler,
 	}
 }
 

@@ -57,3 +57,31 @@ Accept: application/problem+json
 # Expected:
 # HTTP 400 Bad Request
 # response.body.type == "https://err.hotel-booking.io/bad-request"
+
+### ==============================================================================
+### Reset Database
+### ==============================================================================
+
+# @name ResetDatabase
+POST {{baseUrl}}/api/v1/reset
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200 OK
+# response.body.message == "Database reset successfully"
+
+### ==============================================================================
+### Seed Database
+### ==============================================================================
+
+# @name SeedDatabase
+POST {{baseUrl}}/api/v1/seed
+Accept: application/json
+
+###
+# Expected:
+# HTTP 200 OK
+# response.body.message == "Database seeded successfully"
+# response.body.hotels_count == 2
+# response.body.rooms_count == 12

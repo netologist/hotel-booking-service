@@ -113,6 +113,12 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
+// ResetResponse defines model for ResetResponse.
+type ResetResponse struct {
+	// Message Example: Database reset successfully
+	Message string `json:"message"`
+}
+
 // Room defines model for Room.
 type Room struct {
 	// Capacity Example: 1
@@ -129,6 +135,18 @@ type Room struct {
 
 // RoomType Example: single
 type RoomType string
+
+// SeedResponse defines model for SeedResponse.
+type SeedResponse struct {
+	// HotelsCount Example: 2
+	HotelsCount int `json:"hotels_count"`
+
+	// Message Example: Database seeded successfully
+	Message string `json:"message"`
+
+	// RoomsCount Example: 12
+	RoomsCount int `json:"rooms_count"`
+}
 
 // ValidationError defines model for ValidationError.
 type ValidationError struct {
@@ -168,6 +186,12 @@ type ServerInterface interface {
 	// CreateHotel Register a new hotel
 	// (POST /api/v1/hotels)
 	CreateHotel(w http.ResponseWriter, r *http.Request)
+	// ResetDatabase Reset database removing all test data
+	// (POST /api/v1/reset)
+	ResetDatabase(w http.ResponseWriter, r *http.Request)
+	// SeedDatabase Seed database with test data
+	// (POST /api/v1/seed)
+	SeedDatabase(w http.ResponseWriter, r *http.Request)
 	// GetHealth Health check probe
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -186,6 +210,18 @@ func (_ Unimplemented) FindHotels(w http.ResponseWriter, r *http.Request, params
 // CreateHotel Register a new hotel
 // (POST /api/v1/hotels)
 func (_ Unimplemented) CreateHotel(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ResetDatabase Reset database removing all test data
+// (POST /api/v1/reset)
+func (_ Unimplemented) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SeedDatabase Seed database with test data
+// (POST /api/v1/seed)
+func (_ Unimplemented) SeedDatabase(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -242,6 +278,34 @@ func (siw *ServerInterfaceWrapper) CreateHotel(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateHotel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResetDatabase operation middleware
+func (siw *ServerInterfaceWrapper) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResetDatabase(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SeedDatabase operation middleware
+func (siw *ServerInterfaceWrapper) SeedDatabase(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SeedDatabase(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -387,6 +451,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/hotels", wrapper.CreateHotel)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/seed", wrapper.SeedDatabase)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/reset", wrapper.ResetDatabase)
+	})
 
 	return r
 }
@@ -507,6 +577,80 @@ func (response CreateHotel500ApplicationProblemPlusJSONResponse) VisitCreateHote
 	return err
 }
 
+type ResetDatabaseRequestObject struct {
+}
+
+type ResetDatabaseResponseObject interface {
+	VisitResetDatabaseResponse(w http.ResponseWriter) error
+}
+
+type ResetDatabase200JSONResponse ResetResponse
+
+func (response ResetDatabase200JSONResponse) VisitResetDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetDatabase500ApplicationProblemPlusJSONResponse struct {
+	InternalServerErrorApplicationProblemPlusJSONResponse
+}
+
+func (response ResetDatabase500ApplicationProblemPlusJSONResponse) VisitResetDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SeedDatabaseRequestObject struct {
+}
+
+type SeedDatabaseResponseObject interface {
+	VisitSeedDatabaseResponse(w http.ResponseWriter) error
+}
+
+type SeedDatabase200JSONResponse SeedResponse
+
+func (response SeedDatabase200JSONResponse) VisitSeedDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SeedDatabase500ApplicationProblemPlusJSONResponse struct {
+	InternalServerErrorApplicationProblemPlusJSONResponse
+}
+
+func (response SeedDatabase500ApplicationProblemPlusJSONResponse) VisitSeedDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetHealthRequestObject struct {
 }
 
@@ -556,6 +700,12 @@ type StrictServerInterface interface {
 	// CreateHotel Register a new hotel
 	// (POST /api/v1/hotels)
 	CreateHotel(ctx context.Context, request CreateHotelRequestObject) (CreateHotelResponseObject, error)
+	// ResetDatabase Reset database removing all test data
+	// (POST /api/v1/reset)
+	ResetDatabase(ctx context.Context, request ResetDatabaseRequestObject) (ResetDatabaseResponseObject, error)
+	// SeedDatabase Seed database with test data
+	// (POST /api/v1/seed)
+	SeedDatabase(ctx context.Context, request SeedDatabaseRequestObject) (SeedDatabaseResponseObject, error)
 	// GetHealth Health check probe
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -657,6 +807,54 @@ func (sh *strictHandler) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ResetDatabase operation middleware
+func (sh *strictHandler) ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	var request ResetDatabaseRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResetDatabase(ctx, request.(ResetDatabaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResetDatabase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResetDatabaseResponseObject); ok {
+		if err := validResponse.VisitResetDatabaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SeedDatabase operation middleware
+func (sh *strictHandler) SeedDatabase(w http.ResponseWriter, r *http.Request) {
+	var request SeedDatabaseRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SeedDatabase(ctx, request.(SeedDatabaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SeedDatabase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SeedDatabaseResponseObject); ok {
+		if err := validResponse.VisitSeedDatabaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetHealth operation middleware
 func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	var request GetHealthRequestObject
@@ -686,30 +884,33 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"JegFXsBj4vfh2hQyYPXXAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

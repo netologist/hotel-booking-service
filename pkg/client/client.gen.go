@@ -108,6 +108,12 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
+// ResetResponse defines model for ResetResponse.
+type ResetResponse struct {
+	// Message Example: Database reset successfully
+	Message string `json:"message"`
+}
+
 // Room defines model for Room.
 type Room struct {
 	// Capacity Example: 1
@@ -124,6 +130,18 @@ type Room struct {
 
 // RoomType Example: single
 type RoomType string
+
+// SeedResponse defines model for SeedResponse.
+type SeedResponse struct {
+	// HotelsCount Example: 2
+	HotelsCount int `json:"hotels_count"`
+
+	// Message Example: Database seeded successfully
+	Message string `json:"message"`
+
+	// RoomsCount Example: 12
+	RoomsCount int `json:"rooms_count"`
+}
 
 // ValidationError defines model for ValidationError.
 type ValidationError struct {
@@ -248,6 +266,16 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
 	CreateHotel(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ResetDatabase Reset database removing all test data
+	//
+	// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
+	ResetDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SeedDatabase Seed database with test data
+	//
+	// Corresponds with POST /api/v1/seed (the `SeedDatabase` operationId).
+	SeedDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetHealth Health check probe
 	//
 	// Corresponds with GET /healthz (the `GetHealth` operationId).
@@ -293,6 +321,36 @@ func (c *Client) CreateHotelWithBody(ctx context.Context, contentType string, bo
 // Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
 func (c *Client) CreateHotel(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateHotelRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResetDatabase Reset database removing all test data
+//
+// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
+func (c *Client) ResetDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetDatabaseRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SeedDatabase Seed database with test data
+//
+// Corresponds with POST /api/v1/seed (the `SeedDatabase` operationId).
+func (c *Client) SeedDatabase(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSeedDatabaseRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -408,6 +466,60 @@ func NewCreateHotelRequestWithBody(server string, contentType string, body io.Re
 	return req, nil
 }
 
+// NewResetDatabaseRequest constructs an http.Request for the ResetDatabase method
+func NewResetDatabaseRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/reset")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSeedDatabaseRequest constructs an http.Request for the SeedDatabase method
+func NewSeedDatabaseRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/seed")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetHealthRequest constructs an http.Request for the GetHealth method
 func NewGetHealthRequest(server string) (*http.Request, error) {
 	var err error
@@ -499,6 +611,20 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/hotels (the `CreateHotel` operationId).
 	CreateHotelWithResponse(ctx context.Context, body CreateHotelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateHotelResponse, error)
+
+	// ResetDatabaseWithResponse Reset database removing all test data
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
+	ResetDatabaseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ResetDatabaseResponse, error)
+
+	// SeedDatabaseWithResponse Seed database with test data
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/seed (the `SeedDatabase` operationId).
+	SeedDatabaseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SeedDatabaseResponse, error)
 
 	// GetHealthWithResponse Health check probe
 	//
@@ -622,6 +748,102 @@ func (r CreateHotelResponse) ContentType() string {
 	return ""
 }
 
+type ResetDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ResetResponse
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *InternalServerError
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResetDatabaseResponse) GetJSON200() *ResetResponse {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ResetDatabaseResponse) GetApplicationproblemJSON500() *InternalServerError {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ResetDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResetDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SeedDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SeedResponse
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *InternalServerError
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SeedDatabaseResponse) GetJSON200() *SeedResponse {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r SeedDatabaseResponse) GetApplicationproblemJSON500() *InternalServerError {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r SeedDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SeedDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SeedDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SeedDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetHealthResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -717,6 +939,32 @@ func (c *ClientWithResponses) CreateHotelWithResponse(ctx context.Context, body 
 	return ParseCreateHotelResponse(rsp)
 }
 
+// ResetDatabaseWithResponse Reset database removing all test data
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/reset (the `ResetDatabase` operationId).
+func (c *ClientWithResponses) ResetDatabaseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ResetDatabaseResponse, error) {
+	rsp, err := c.ResetDatabase(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetDatabaseResponse(rsp)
+}
+
+// SeedDatabaseWithResponse Seed database with test data
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/seed (the `SeedDatabase` operationId).
+func (c *ClientWithResponses) SeedDatabaseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SeedDatabaseResponse, error) {
+	rsp, err := c.SeedDatabase(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSeedDatabaseResponse(rsp)
+}
+
 // GetHealthWithResponse Health check probe
 //
 // Returns a wrapper object for the known response body format(s).
@@ -799,6 +1047,72 @@ func ParseCreateHotelResponse(rsp *http.Response) (*CreateHotelResponse, error) 
 			return nil, err
 		}
 		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetDatabaseResponse parses an HTTP response from a ResetDatabaseWithResponse call
+func ParseResetDatabaseResponse(rsp *http.Response) (*ResetDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResetResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSeedDatabaseResponse parses an HTTP response from a SeedDatabaseWithResponse call
+func ParseSeedDatabaseResponse(rsp *http.Response) (*SeedDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SeedDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SeedResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerError

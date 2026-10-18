@@ -22,9 +22,11 @@ import (
 func newTestRouter(t *testing.T, opts httpapi.RouterOptions) (http.Handler, *usecasemocks.MockHotelService) {
 	t.Helper()
 	mockService := usecasemocks.NewMockHotelService(t)
+	mockAdmin := usecasemocks.NewMockAdminService(t)
 	server := httpapi.NewServer(
 		handler.NewHealthCheck(),
 		handler.NewHotelHandler(mockService),
+		handler.NewAdminHandler(mockAdmin),
 	)
 	return httpapi.NewRouterWithOptions(server, opts), mockService
 }

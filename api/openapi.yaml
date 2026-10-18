@@ -65,6 +65,33 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/seed:
+    post:
+      summary: Seed database with test data
+      operationId: seedDatabase
+      responses:
+        '200':
+          description: Database seeded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/reset:
+    post:
+      summary: Reset database removing all test data
+      operationId: resetDatabase
+      responses:
+        '200':
+          description: Database reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   responses:
     BadRequest:
@@ -232,3 +259,29 @@ components:
           minLength: 2
           maxLength: 100
           example: "Lutz"
+
+    SeedResponse:
+      type: object
+      required:
+        - message
+        - hotels_count
+        - rooms_count
+      properties:
+        message:
+          type: string
+          example: "Database seeded successfully"
+        hotels_count:
+          type: integer
+          example: 2
+        rooms_count:
+          type: integer
+          example: 12
+
+    ResetResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Database reset successfully"
