@@ -194,3 +194,23 @@ func TestAsyncEmailNotifier(t *testing.T) {
 	notifier.SendConfirmationEmail(booking)
 	time.Sleep(20 * time.Millisecond)
 }
+
+func TestAsyncEmailNotifier_Drain(t *testing.T) {
+	t.Parallel()
+	notifier := usecase.NewAsyncEmailNotifier(10 * time.Millisecond)
+	booking := domain.Booking{
+		Reference:    "BK-DRAIN-TEST",
+		GuestName:    "John",
+		GuestEmail:   "john@example.com",
+		CheckInDate:  time.Now(),
+		CheckOutDate: time.Now().Add(24 * time.Hour),
+	}
+
+	notifier.SendConfirmationEmail(booking)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	err := notifier.Drain(ctx)
+	require.NoError(t, err)
+}

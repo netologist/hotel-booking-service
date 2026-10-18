@@ -142,6 +142,11 @@ func runServerWithHealth( //nolint:funlen // server assembly + graceful shutdown
 			return fmt.Errorf("graceful shutdown failed: %w", err)
 		}
 
+		slog.Info("draining pending asynchronous notifications")
+		if err := notifier.Drain(shutdownCtx); err != nil {
+			slog.Warn("asynchronous notifications drain incomplete", "error", err)
+		}
+
 		slog.Info("server shutdown completed successfully")
 		return nil
 	})
