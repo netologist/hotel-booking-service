@@ -14,18 +14,18 @@ The core architectural invariant is the **Dependency Inversion Principle**:
 
 ```mermaid
 graph TD
-    subgraph Driving_Adapters [Driving Adapters (Primary)]
-        HTTP[HTTP REST API / Chi Router]
-        Swagger[Swagger UI & OpenAPI Spec]
+    subgraph Driving_Adapters ["Driving Adapters (Primary)"]
+        HTTP["HTTP REST API / Chi Router"]
+        Swagger["Swagger UI & OpenAPI Spec"]
     end
 
-    subgraph Core [Application Core]
-        UC[Use Cases / Application Services]
-        DOM[Domain Models, Invariants & Ports]
+    subgraph Core ["Application Core"]
+        UC["Use Cases / Application Services"]
+        DOM["Domain Models, Invariants & Ports"]
     end
 
-    subgraph Driven_Adapters [Driven Adapters (Secondary)]
-        PG[(PostgreSQL / pgx & sqlc)]
+    subgraph Driven_Adapters ["Driven Adapters (Secondary)"]
+        PG[("PostgreSQL / pgx & sqlc")]
     end
 
     HTTP -->|Calls| UC
