@@ -1,10 +1,10 @@
-# Go Service Template
+# Hotel Booking
 
-A production-grade, battle-tested Go microservice template built with **Hexagonal Architecture** (ports & adapters), **OpenAPI spec-first** code generation, **PostgreSQL** persistence with UUIDv7, hermetic toolchains (**Mise**), and a **zero-trust CI/CD pipeline**.
+Hotel Booking is a Go service for registering and finding hotels, searching for available rooms, and creating and retrieving bookings. It uses an OpenAPI-first HTTP API, PostgreSQL persistence, and hexagonal architecture.
 
 ---
 
-## Key Architectural Highlights
+## Architecture
 
 ```mermaid
 graph TD
@@ -23,26 +23,14 @@ graph TD
     end
 ```
 
-- **Spec-First API Contracts**: OpenAPI 3.0 specification drives typesafe HTTP router interfaces, parameters, and RFC 7807/9457 error models via `oapi-codegen`.
-- **Hermetic Toolchains**: Reproducible developer environments and CI pipelines managed strictly through `mise` and Go tool directives—zero ambient dependency drift.
-- **Type-Safe Persistence**: Pure SQL compilation with `sqlc`, versioned migrations with `goose`, high-performance connection pooling with `pgx/v5`, and time-ordered `UUIDv7` keys.
-- **Zero-Trust CI/CD**: Gitleaks secret detection, govulncheck vulnerability audits, actionlint and zizmor workflow analysis, and minimal scratch production containers.
+- **Hotel management**: Register hotels and search for hotels by name.
+- **Room availability**: Find available rooms for a date range and number of guests.
+- **Bookings**: Book a room and retrieve a booking using its reference.
+- **Spec-first API**: The OpenAPI specification defines the HTTP contract and generates server types.
+- **PostgreSQL persistence**: SQL queries are generated with `sqlc` and schema migrations are managed with `goose`.
 
 ---
 
-## Documentation Roadmap
-
-| Section | Description |
-| :--- | :--- |
-| **[Folder Structure](folder-structure.md)** | Deep dive into hexagonal layers, dependencies, and file layout. |
-| **[Tech Stack](tech-stack.md)** | Architectural justification for every library and developer tool. |
-| **[CI/CD & Security](pipeline.md)** | Multi-stage verification pipeline, container provenance, and supply chain security. |
-| **[Template Guide](template-guide.md)** | Step-by-step guide to instantiating, renaming, and adopting this template. |
-| **[User Guide](user-guide.md)** | Comprehensive developer handbook for running, debugging, testing, and operating the service. |
-| **[Decisions (ADRs)](decisions/0001-development-environment.md)** | Formal Architecture Decision Records documenting all major technical tradeoffs. |
-| **[Technical Debts](techdebts/0001-ci-cache-poisoning.md)** | Explicit log of tracked technical compromises and their remediation paths. |
-
----
 
 ## Quickstart
 
@@ -73,4 +61,8 @@ The server starts on `http://localhost:8080`:
 - **Health check probe**: `GET http://localhost:8080/healthz`
 - **Swagger UI**: `GET http://localhost:8080/docs/`
 - **OpenAPI Specification**: `GET http://localhost:8080/openapi.json`
-- **Items API**: `GET /api/v1/items`, `POST /api/v1/items`
+- **Hotels**: `GET /api/v1/hotels?name=grand`, `POST /api/v1/hotels`
+- **Room availability**: `GET /api/v1/rooms/available`
+- **Bookings**: `POST /api/v1/bookings`, `GET /api/v1/bookings/{bookingReference}`
+
+Swagger UI and the OpenAPI endpoint are available when API documentation is enabled; they are disabled in production.

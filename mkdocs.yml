@@ -1,18 +1,22 @@
-site_name: Go Service Template
-site_description: Production-grade Go Microservice Template with Hexagonal Architecture
+site_name: Hotel Booking
+site_description: Hotel booking service API and developer documentation
 site_author: Netologist
-repo_name: netologist/go-service-template
-repo_url: https://github.com/netologist/hotel-booking
+repo_name: netologist/hotel-booking-service
+repo_url: https://github.com/netologist/hotel-booking-service
 edit_uri: edit/main/docs/
 
 docs_dir: docs
 site_dir: site
 
 exclude_docs: |
+  *.md
+  !index.md
+  openapi.yaml
   reviews/**
   **/.DS_Store
 theme:
   name: material
+  custom_dir: overrides
   language: en
   palette:
     # Light mode
@@ -68,20 +72,3 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Architecture & Design:
-      - Project Structure: folder-structure.md
-      - Tech Stack: tech-stack.md
-      - CI/CD & Security: pipeline.md
-  - Adoption Guide: template-guide.md
-  - User Guide: user-guide.md
-  - API Reference & Swagger: api.md
-  - Architecture Decisions (ADRs):
-      - ADR-0001 Development Environment: decisions/0001-development-environment.md
-      - ADR-0002 OpenAPI Spec-First: decisions/0002-openapi-spec-first-architecture.md
-      - ADR-0003 PostgreSQL Persistence: decisions/0003-postgresql-persistence-layer.md
-      - ADR-0004 Configuration Management: decisions/0004-configuration-management.md
-      - ADR-0005 Layer Simplification: decisions/0005-layer-simplification-and-mapping.md
-      - ADR-0006 Air Live-Reload & Delve: decisions/0006-local-development-air-delve.md
-      - ADR-0007 gRPC Dual-Protocol: decisions/0007-grpc-support-and-dual-protocol-architecture.md
-  - Technical Debts:
-      - TD-0001 CI Cache Poisoning: techdebts/0001-ci-cache-poisoning.md

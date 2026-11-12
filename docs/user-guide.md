@@ -24,7 +24,7 @@ To run and develop this project, you only need two tools installed on your host 
 
 | Tool | Minimum Version | Responsibility |
 | :--- | :--- | :--- |
-| **[Mise](https://mise.jdx.dev/)** | Latest | Manages Go runtime (`1.27.2`) and task orchestration. |
+| **[Mise](https://mise.jdx.dev/)** | Latest | Manages Go runtime (`1.27.4`) and task orchestration. |
 | **[Docker & Docker Compose](https://docs.docker.com/get-docker/)** | v2.20+ | Runs local PostgreSQL database and containerized suites. |
 
 > **Note:** You do **not** need to install Go CLI utilities globally (`go install ...`). Every tool is version-pinned in `go.mod` and executed through `mise`.
