@@ -59,5 +59,10 @@ Below is the interactive Swagger UI rendering the service's `api/openapi.yaml` c
 | Endpoint | Method | Summary | Request Body | Response (Success) |
 |---|---|---|---|---|
 | `/healthz` | `GET` | Health check probe | None | `200 OK` (Service status) |
-| `/api/v1/items` | `GET` | Find an item by name or list all items | None (query: `name`) | `200 OK` (Array of items) |
-| `/api/v1/items` | `POST` | Register a new item | `CreateItemRequest` | `201 Created` (Item) |
+| `/api/v1/hotels` | `GET` | Find hotels by name | None (required query: `name`) | `200 OK` |
+| `/api/v1/hotels` | `POST` | Register a hotel | `CreateHotelRequest` | `201 Created` |
+| `/api/v1/rooms/available` | `GET` | Find available rooms | None (required queries: `check_in_date`, `check_out_date`, `guests`) | `200 OK` |
+| `/api/v1/bookings` | `POST` | Book a room | `BookRoomRequest` | `201 Created` |
+| `/api/v1/bookings/{bookingReference}` | `GET` | Retrieve booking details | None | `200 OK` |
+| `/api/v1/seed` | `POST` | Seed test data | None | `200 OK` |
+| `/api/v1/reset` | `POST` | Remove test data | None | `200 OK` |

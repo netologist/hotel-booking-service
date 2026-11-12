@@ -9,9 +9,7 @@ docs_dir: docs
 site_dir: site
 
 exclude_docs: |
-  *.md
-  !index.md
-  openapi.yaml
+  template-guide.md
   reviews/**
   **/.DS_Store
 theme:
@@ -72,3 +70,20 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Architecture & Design:
+      - Project Structure: folder-structure.md
+      - Tech Stack: tech-stack.md
+      - CI/CD & Security: pipeline.md
+  - Development Guide: user-guide.md
+  - API Reference & Swagger: api.md
+  - Architecture Decisions:
+      - Development Environment: decisions/0001-development-environment.md
+      - OpenAPI Spec-First: decisions/0002-openapi-spec-first-architecture.md
+      - PostgreSQL Persistence: decisions/0003-postgresql-persistence-layer.md
+      - Configuration Management: decisions/0004-configuration-management.md
+      - Layer Simplification: decisions/0005-layer-simplification-and-mapping.md
+      - Local Development: decisions/0006-local-development-air-delve.md
+      - gRPC Dual-Protocol: decisions/0007-grpc-support-and-dual-protocol-architecture.md
+  - Technical Debt:
+      - CI Cache Poisoning: techdebts/0001-ci-cache-poisoning.md
+      - Telemetry: techdebts/0002-telemetry-metrics-tracing-setup.md
